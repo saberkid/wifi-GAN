@@ -1,6 +1,4 @@
 import numpy as np
-
-from torchvision.utils import save_image
 from torch.autograd import Variable
 from networks.discriminator import Discriminator
 from networks.generator import Generator
