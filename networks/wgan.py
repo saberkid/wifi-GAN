@@ -64,6 +64,9 @@ class WGan():
         gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
         return gradient_penalty
 
+    def compute_loss_d(self):
+        pass
+
 
     # ----------
     #  Training

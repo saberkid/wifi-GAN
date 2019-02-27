@@ -7,7 +7,7 @@ class_dict  = {'empty':0, 'living': 1, 'kitchen':2, 'chianyu':3, 'bathroom':4, '
 
 #============read CSI data from file======================
 # subcarrier channel, samples point, antena to antena
-filepath = 'data/ChianyuAptDay1'
+filepath = '../data/ChianyuAptDay1'
 csiset = []
 target = []
 trim = 800
@@ -29,15 +29,15 @@ for dir in os.listdir(filepath):
 
         discard = ( csiAmplitude_filtered.shape[1] - trim) // 2
         csiAmplitude_filtered = csiAmplitude_filtered[:, discard:discard + trim, :]
-        csiset.append(csiAmplitude_filtered)
+        csiset.extend(np.split(csiAmplitude_filtered, 8, axis=1))
+        #csiset.append(csiAmplitude_filtered)
         classnum = class_dict[ os.path.splitext(file)[0].split('_')[-1]]
         target.append(classnum)
-        print('csiAmplitude_filtered: ', csiAmplitude_filtered.shape)
+        csi_shape = csiset[0].shape
+        print('csiAmplitude_filtered: ', csi_shape)
 
-
-
-np.save("csiset.npy", csiset)
-np.save("target.npy", target)
+np.save("../csiset_{0}_{1}_{2}.npy".format(str(csi_shape[0]), str(csi_shape[1]), str(csi_shape[2])), csiset)
+np.save("../target.npy", target)
 
 ######################################################################
 #L2_csi, L2_rssi, L2_ntx = ParserTools.get_L2_NormsFiltered_data_adaptive()                                                                                     files)

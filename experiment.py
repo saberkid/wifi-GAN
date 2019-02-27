@@ -19,7 +19,7 @@ parser.add_argument("--clip_value", type=float, default=0.01, help="lower and up
 parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")
 opt = parser.parse_args()
 
-input_shape = (56, 800, 16)
+input_shape = (56, 100, 16)
 data = dataset.CSISet()
 dataloader = dataset.CSILoader(data)
 csigan = WGan(opt, input_shape, dataloader)
