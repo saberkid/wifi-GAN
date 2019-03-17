@@ -25,18 +25,29 @@ for dir in os.listdir(filepath):
         csiAmplitude_filtered = Parser.getFiltered(csiAmplitude_normalized, 'original', 8,
                                                    polyorder=3,
                                                    mode='nearest',
-                                                   axis=0)
+                                                  axis=0)
+
+        # #filtered out 16
+        # csiAmplitude_filtered = csiAmplitude_filtered[ :, :, 0]
 
         discard = ( csiAmplitude_filtered.shape[1] - trim) // 2
-        csiAmplitude_filtered = csiAmplitude_filtered[:, discard:discard + trim, :]
-        csiset.extend(np.split(csiAmplitude_filtered, 8, axis=1))
-        #csiset.append(csiAmplitude_filtered)
-        classnum = class_dict[ os.path.splitext(file)[0].split('_')[-1]]
-        target.append(classnum)
-        csi_shape = csiset[0].shape
-        print('csiAmplitude_filtered: ', csi_shape)
+        csiAmplitude_filtered = csiAmplitude_filtered[:, discard:discard + trim]
+        classnum = class_dict[os.path.splitext(file)[0].split('_')[-1]]
+        #sliding window
+        for i in range(32):
+            csiAmplitude_filtered_sub = csiAmplitude_filtered[:, i * 24:i * 24 + 48, ]
+            # # To 2D
+            # csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.reshape(56, 10, 10)
+            csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.swapaxes(0, 2)
+            csiset.append(csiAmplitude_filtered_sub)
+            target.append(classnum)
 
-np.save("../csiset_{0}_{1}_{2}.npy".format(str(csi_shape[0]), str(csi_shape[1]), str(csi_shape[2])), csiset)
+csiset = np.array(csiset)
+target = np.array(target)
+csi_shape = csiset.shape
+print('csiAmplitude_filtered: ', csi_shape)
+print(target.shape)
+np.save("../csiset_{0}_{1}_{2}_{3}.npy".format(str(csi_shape[0]), str(csi_shape[1]), str(csi_shape[2]), str(csi_shape[3])), csiset)
 np.save("../target.npy", target)
 
 ######################################################################

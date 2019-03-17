@@ -1,10 +1,5 @@
 from torch.utils.data import Dataset, DataLoader
 
-import numpy as np
-
-csifile = np.load('csiset.npy')
-targetfile = np.load('target.npy')
-
 def preprocess(csiset):
     # TODO train test split here
     return csiset
@@ -16,7 +11,7 @@ def default_loader(csiset):
 
 
 class CSISet(Dataset):
-    def __init__(self, loader=default_loader):
+    def __init__(self, csifile, targetfile, loader=default_loader):
         self._csi = csifile
         self._target = targetfile
         self.loader = loader
@@ -32,5 +27,5 @@ class CSISet(Dataset):
 
 
 class CSILoader(DataLoader):
-    def __init__(self, dataset):
-        super(CSILoader,self).__init__(dataset)
+    def __init__(self, dataset, opt):
+        super(CSILoader,self).__init__(dataset,batch_size=opt.batch_size, shuffle=True, num_workers=2)
