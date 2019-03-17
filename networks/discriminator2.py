@@ -15,7 +15,6 @@ class Discriminator(nn.Module):
             layers.append(nn.LeakyReLU(0.01))
             curr_dim = curr_dim * 2
 
-        #TODO find out the kernel size
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.main = nn.Sequential(*layers)
         self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
@@ -25,5 +24,5 @@ class Discriminator(nn.Module):
         h = self.main(x)
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
-        #print(out_cls.shape)
+
         return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))

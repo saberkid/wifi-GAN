@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.autograd as autograd
 import torch
 import torch.nn as nn
+import os
 
 
 class WGan():
@@ -28,6 +29,7 @@ class WGan():
         # loss weight TODO rewrite in opt
         self.lambda_cls = 1
         self.lambda_rec = 10
+        self.model_save_epoch = 10
         self._init_optimizer()
 
     # Optimizers
@@ -75,7 +77,7 @@ class WGan():
         # Binary Cross Entropy loss
         BCE_loss = nn.BCELoss()
 
-        batches_done = 0
+        #batches_done = 0
         for epoch in range(self.opt.n_epochs):
             for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
 
@@ -84,9 +86,13 @@ class WGan():
                 batch_labels = batch_labels.long().to(self.device)
                 rand_idx = torch.randperm(batch_labels.size(0))
                 batch_labels_trg = batch_labels[rand_idx].to(self.device)
+                #print(batch_labels_trg)
 
-                c_org = self.label2onehot(batch_labels, self.c_dim).to(self.device)
-                c_trg = self.label2onehot(batch_labels_trg, self.c_dim).to(self.device)
+
+                c_org = self.label2onehot(batch_labels, self.c_dim)
+                c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
+                c_org = c_org.to(self.device)
+                c_trg = c_trg.to(self.device)
                 # ---------------------
                 #  Train Discriminator
                 # ---------------------
@@ -108,6 +114,7 @@ class WGan():
                 d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
                 # Backward and optimize.
+                #print(d_loss_real)
                 d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
                 self.reset_grad()
                 d_loss.backward()
@@ -140,11 +147,11 @@ class WGan():
                         % (epoch, self.opt.n_epochs, i, len(self.dataloader), d_loss.item(), g_loss.item())
                     )
 
-                    # Save model checkpoints.
-                    # if (i + 1) % self.model_save_step == 0:
-                    #     G_path = os.path.join(self.model_save_dir, '{}-G.ckpt'.format(i + 1))
-                    #     D_path = os.path.join(self.model_save_dir, '{}-D.ckpt'.format(i + 1))
-                    #     torch.save(self.G.state_dict(), G_path)
-                    #     torch.save(self.D.state_dict(), D_path)
-                    #     print('Saved model checkpoints into {}...'.format(self.model_save_dir))
-                    # batches_done += self.opt.n_critic
+                #Save model checkpoints.
+                if (epoch + 1) % self.model_save_epoch == 0:
+                    G_path = os.path.join(self.model_save_dir, '{}-G.ckpt'.format(epoch + 1))
+                    D_path = os.path.join(self.model_save_dir, '{}-D.ckpt'.format(epoch + 1))
+                    torch.save(self.G.state_dict(), G_path)
+                    torch.save(self.D.state_dict(), D_path)
+                    print('Saved model checkpoints into {}...'.format(self.model_save_dir))
+                #batches_done += self.opt.n_critic

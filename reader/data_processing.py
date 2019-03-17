@@ -1,6 +1,6 @@
 import os
 
-import Parser
+from reader import Parser
 import numpy as np
 
 class_dict  = {'empty':0, 'living': 1, 'kitchen':2, 'chianyu':3, 'bathroom':4, 'jen':5}
@@ -21,12 +21,12 @@ for dir in os.listdir(filepath):
         #       "NO. n_packets: ", n_packets)
         csiAmplitude_raw, rssi_raw = Parser.getMagnitude(data0)
         # print('csiAmplitude_raw: ', csiAmplitude_raw.shape)
-        csiAmplitude_normalized = Parser.getStandardized(csiAmplitude_raw)
-        csiAmplitude_filtered = Parser.getFiltered(csiAmplitude_normalized, 'original', 8,
+        #csiAmplitude = Parser.getStandardized(csiAmplitude_raw)
+
+        csiAmplitude_filtered = Parser.getFiltered(csiAmplitude_raw, 'original', 8,
                                                    polyorder=3,
                                                    mode='nearest',
-                                                  axis=0)
-
+                                                   axis=0)
         # #filtered out 16
         # csiAmplitude_filtered = csiAmplitude_filtered[ :, :, 0]
 
@@ -38,7 +38,7 @@ for dir in os.listdir(filepath):
             csiAmplitude_filtered_sub = csiAmplitude_filtered[:, i * 24:i * 24 + 48, ]
             # # To 2D
             # csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.reshape(56, 10, 10)
-            csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.swapaxes(0, 2)
+            #csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.swapaxes(0, 2)
             csiset.append(csiAmplitude_filtered_sub)
             target.append(classnum)
 
