@@ -17,6 +17,7 @@ class WGan():
         self.G = Generator()
         self.D = Discriminator()
         self.dataloader = dataloader
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if cuda:
             self.G.cuda()
             self.D.cuda()
@@ -36,7 +37,7 @@ class WGan():
 
     def gradient_penalty(self, y, x):
         """Compute gradient penalty: (L2_norm(dy/dx) - 1)**2."""
-        weight = torch.ones(y.size())
+        weight = torch.ones(y.size()).to(self.device)
         dydx = torch.autograd.grad(outputs=y,
                                    inputs=x,
                                    grad_outputs=weight,
@@ -78,14 +79,14 @@ class WGan():
         for epoch in range(self.opt.n_epochs):
             for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
 
-                X = Variable(batch_imgs).float()
+                X = Variable(batch_imgs).float().to(self.device)
                 # Generate target domain labels randomly.
-                batch_labels = batch_labels.long()
+                batch_labels = batch_labels.long().to(self.device)
                 rand_idx = torch.randperm(batch_labels.size(0))
-                batch_labels_trg = batch_labels[rand_idx]
+                batch_labels_trg = batch_labels[rand_idx].to(self.device)
 
-                c_org = self.label2onehot(batch_labels, self.c_dim)
-                c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
+                c_org = self.label2onehot(batch_labels, self.c_dim).to(self.device)
+                c_trg = self.label2onehot(batch_labels_trg, self.c_dim).to(self.device)
                 # ---------------------
                 #  Train Discriminator
                 # ---------------------
@@ -101,7 +102,7 @@ class WGan():
                 d_loss_fake = torch.mean(out_src)
 
                 # Compute loss for gradient penalty.
-                alpha = torch.rand(X.size(0), 1, 1, 1)
+                alpha = torch.rand(X.size(0), 1, 1, 1).to(self.device)
                 x_hat = (alpha * X.data + (1 - alpha) * x_fake.data).requires_grad_(True)
                 out_src, _ = self.D(x_hat)
                 d_loss_gp = self.gradient_penalty(out_src, x_hat)
