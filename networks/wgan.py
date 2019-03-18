@@ -187,12 +187,14 @@ class WGan():
 
                 # Prepare input images and target domain labels.
                 x_real = x_real.float().to(self.device)
-                c_trg_list = self.create_labels(c_org, self.c_dim)
+                #c_trg_list = self.create_labels(c_org, self.c_dim)
+                rand_idx = torch.randperm(c_org.size(0))
+                batch_labels_trg = c_org[rand_idx].to(self.device)
+                c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
+                c_trg = c_trg.to(self.device)
 
-                # Translate images.
-                for c_trg in c_trg_list:
-                    x_fake_list.append(self.G(x_real, c_trg).cpu().numpy())
-                    label_list.append(c_trg.cpu().numpy())
+                x_fake_list.append(self.G(x_real, c_trg).cpu().numpy())
+                label_list.append(c_trg.cpu().numpy())
 
                 # Save the translated images.
 
