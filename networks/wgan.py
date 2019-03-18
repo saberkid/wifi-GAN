@@ -180,8 +180,6 @@ class WGan():
         """Translate images using StarGAN trained on a single dataset."""
         # Load the trained generator.
         self.restore_model(self.test_iters)
-        self.dataloader.batch_size = 1
-
         with torch.no_grad():
             x_fake_list = []
             label_list = []
