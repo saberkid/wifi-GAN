@@ -186,7 +186,7 @@ class WGan():
             for i, (x_real, c_org) in enumerate(self.dataloader):
 
                 # Prepare input images and target domain labels.
-                x_real = x_real.to(self.device)
+                x_real = x_real.float().to(self.device)
                 c_trg_list = self.create_labels(c_org, self.c_dim)
 
                 # Translate images.
