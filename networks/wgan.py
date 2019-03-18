@@ -191,8 +191,8 @@ class WGan():
 
                 # Translate images.
                 for c_trg in c_trg_list:
-                    x_fake_list.append(self.G(x_real, c_trg).numpy())
-                    label_list.append(c_trg.numpy())
+                    x_fake_list.append(self.G(x_real, c_trg).cpu().numpy())
+                    label_list.append(c_trg.cpu().numpy())
 
                 # Save the translated images.
 
