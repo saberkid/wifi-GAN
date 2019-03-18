@@ -29,11 +29,14 @@ class WGan():
         self.g_lr = opt.g_lr
         self.d_lr = opt.d_lr
         self.n_critic = opt.n_critic
+        self.test_iters = opt.test_iters
+        self.model_save_dir = opt.model_save_dir
+        self.result_dir = opt.result_dir
         # TODO rewrite in opt
         self.lambda_cls = 1
         self.lambda_rec = 10
         self.model_save_epoch = 10
-        self.model_save_dir = "checkpoint"
+
         self.lr_update_step = 1000
         self._init_optimizer()
 
@@ -56,8 +59,13 @@ class WGan():
         dydx_l2norm = torch.sqrt(torch.sum(dydx ** 2, dim=1))
         return torch.mean((dydx_l2norm - 1) ** 2)
 
-    def compute_loss_d(self):
-        pass
+    def restore_model(self, resume_iters):
+        """Restore the trained generator and discriminator."""
+        print('Loading the trained models from step {}...'.format(resume_iters))
+        G_path = os.path.join(self.model_save_dir, '{}-G.ckpt'.format(resume_iters))
+        D_path = os.path.join(self.model_save_dir, '{}-D.ckpt'.format(resume_iters))
+        self.G.load_state_dict(torch.load(G_path, map_location=lambda storage, loc: storage))
+        self.D.load_state_dict(torch.load(D_path, map_location=lambda storage, loc: storage))
 
     def label2onehot(self, labels, dim):
         """Convert label indices to one-hot vectors."""
@@ -75,14 +83,16 @@ class WGan():
         self.optimizer_D.zero_grad()
         self.optimizer_G.zero_grad()
 
-    # ----------
-    #  Training
-    # ----------
-    def train(self):
-        # Binary Cross Entropy loss
-        BCE_loss = nn.BCELoss()
+    def create_labels(self, c_org, c_dim=6):
+        """Generate target domain labels for debugging and testing."""
 
-        #batches_done = 0
+        c_trg_list = []
+        for i in range(c_dim):
+            c_trg = self.label2onehot(torch.ones(c_org.size(0)) * i, c_dim)
+            c_trg_list.append(c_trg.to(self.device))
+        return c_trg_list
+
+    def train(self):
         for epoch in range(self.opt.n_epochs):
             for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
 
@@ -153,12 +163,12 @@ class WGan():
                     )
 
                 #Save model checkpoints.
-                if (epoch + 1) % self.model_save_epoch == 0:
-                    G_path = os.path.join(self.model_save_dir, '{}-G.ckpt'.format(epoch + 1))
-                    D_path = os.path.join(self.model_save_dir, '{}-D.ckpt'.format(epoch + 1))
-                    torch.save(self.G.state_dict(), G_path)
-                    torch.save(self.D.state_dict(), D_path)
-                    print('Saved model checkpoints into {}...'.format(self.model_save_dir))
+            if (epoch + 1) % self.model_save_epoch == 0:
+                G_path = os.path.join(self.model_save_dir, '{}-G.ckpt'.format(epoch + 1))
+                D_path = os.path.join(self.model_save_dir, '{}-D.ckpt'.format(epoch + 1))
+                torch.save(self.G.state_dict(), G_path)
+                torch.save(self.D.state_dict(), D_path)
+                print('Saved model checkpoints into {}...'.format(self.model_save_dir))
                 #batches_done += self.opt.n_critic
 
                 # Decay learning rates.
@@ -166,3 +176,34 @@ class WGan():
                 #     self.g_lr -= (self.g_lr / float(self.num_iters_decay))
                 #     self.d_lr -= (self.d_lr / float(self.num_iters_decay))
                 #     print('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(self.g_lr, self.d_lr))
+    def test(self):
+        """Translate images using StarGAN trained on a single dataset."""
+        # Load the trained generator.
+        self.restore_model(self.test_iters)
+        self.dataloader.batch_size = 1
+
+        with torch.no_grad():
+            x_fake_list = []
+            label_list = []
+            for i, (x_real, c_org) in enumerate(self.dataloader):
+
+                # Prepare input images and target domain labels.
+                x_real = x_real.to(self.device)
+                c_trg_list = self.create_labels(c_org, self.c_dim)
+
+                # Translate images.
+                for c_trg in c_trg_list:
+                    x_fake_list.append(self.G(x_real, c_trg).numpy())
+                    label_list.append(c_trg.numpy())
+
+                # Save the translated images.
+
+            x_fake_list = np.asarray(x_fake_list)
+            label_list = np.asarray(label_list)
+            print(x_fake_list.shape)
+            print(label_list.shape)
+            result_path_data = os.path.join(self.result_dir, 'output_data.pkl')
+            result_path_label = os.path.join(self.result_dir, 'output_label.pkl')
+            np.save(result_path_data, x_fake_list)
+            np.save(result_path_label, label_list)
+            print('Saved real and fake images into {}...'.format(self.result_dir))

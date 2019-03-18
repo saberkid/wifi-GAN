@@ -5,6 +5,8 @@ from networks.wgan import WGan
 import numpy as np
 os.makedirs("output", exist_ok=True)
 parser = argparse.ArgumentParser()
+parser.add_argument('--mode', type=str, default='test', choices=['train', 'test'])
+
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 parser.add_argument("--g_lr", type=float, default=0.0001, help="adam: generator learning rate")
@@ -18,6 +20,10 @@ parser.add_argument("--channels", type=int, default=1, help="number of image cha
 parser.add_argument("--n_critic", type=int, default=5, help="number of training steps for discriminator per iter")
 parser.add_argument("--clip_value", type=float, default=0.01, help="lower and upper clip value for disc. weights")
 parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")
+parser.add_argument('--test_iters', type=int, default=10, help='test model from this step')
+
+parser.add_argument('--model_save_dir', type=str, default='checkpoint')
+parser.add_argument('--result_dir', type=str, default='output')
 opt = parser.parse_args()
 
 if __name__ == '__main__':
@@ -29,4 +35,9 @@ if __name__ == '__main__':
     data = dataset.CSISet(csifile, targetfile)
     dataloader = dataset.CSILoader(data, opt)
     csigan = WGan(opt, dataloader)
-    csigan.train()
+
+    if opt.mode == 'train':
+        csigan.train()
+    elif opt.mode == 'test':
+        csigan.test()
+
