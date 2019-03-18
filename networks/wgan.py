@@ -217,7 +217,7 @@ class WGan():
                 # Prepare input images and target domain labels.
                 x = x.float().to(self.device)
 
-                _, out_cls = self.D(x).cpu()
+                _, out_cls = self.D(x)
                 predicted = torch.max(out_cls.data, 1)
                 print(predicted)
                 total += out_cls.size(0)
