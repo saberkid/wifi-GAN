@@ -218,8 +218,7 @@ class WGan():
                 x = x.float().to(self.device)
 
                 _, out_cls = self.D(x)
-                predicted = torch.max(out_cls.data, 1)
-                print(predicted)
+                _, predicted = torch.max(out_cls.data, 1)
                 total += out_cls.size(0)
                 correct += (predicted == c_org).sum().item()
         print('Accuracy of the network on the test samples: %d %%' % (100 * correct / total))
