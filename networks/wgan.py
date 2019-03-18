@@ -196,14 +196,30 @@ class WGan():
                 x_fake_list.append(self.G(x_real, c_trg).cpu().numpy())
                 label_list.append(c_trg.cpu().numpy())
 
-                # Save the translated images.
+            # Save the output.
 
             x_fake_list = np.asarray(x_fake_list)
             label_list = np.asarray(label_list)
-            print(x_fake_list.shape)
-            print(label_list.shape)
             result_path_data = os.path.join(self.result_dir, 'output_data.pkl')
             result_path_label = os.path.join(self.result_dir, 'output_label.pkl')
             np.save(result_path_data, x_fake_list)
             np.save(result_path_label, label_list)
             print('Saved real and fake images into {}...'.format(self.result_dir))
+
+    def test_d(self):
+        self.restore_model(self.test_iters)
+        with torch.no_grad():
+            x_fake_list = []
+            label_list = []
+            correct = 0
+            total = 0
+            for i, (x, c_org) in enumerate(self.dataloader):
+                # Prepare input images and target domain labels.
+                x = x.float().to(self.device)
+
+                _, out_cls = self.D(x).cpu()
+                predicted = torch.max(out_cls.data, 1)
+                print(predicted)
+                total += out_cls.size(0)
+                correct += (predicted == c_org).sum().item()
+        print('Accuracy of the network on the test samples: %d %%' % (100 * correct / total))
