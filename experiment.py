@@ -20,7 +20,7 @@ parser.add_argument("--sample_interval", type=int, default=400, help="interval b
 opt = parser.parse_args()
 
 if __name__ == '__main__':
-    csifile = np.load('csiset_5952_16_48_56.npy')
+    csifile = np.load('csiset_5952_56_48_16.npy')
     targetfile = np.load('target.npy')
     # csifile = np.load('csiset_test.npy')
     # targetfile = np.load('target_test.npy')
