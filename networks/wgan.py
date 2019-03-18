@@ -26,16 +26,21 @@ class WGan():
         self.lambda_gp = 10
         self.Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
         self.c_dim = 6
-        # loss weight TODO rewrite in opt
+        self.g_lr = opt.g_lr
+        self.d_lr = opt.d_lr
+        self.n_critic = opt.n_critic
+        # TODO rewrite in opt
         self.lambda_cls = 1
         self.lambda_rec = 10
         self.model_save_epoch = 10
+        self.model_save_dir = "checkpoint"
+        self.lr_update_step = 1000
         self._init_optimizer()
 
     # Optimizers
     def _init_optimizer(self):
-        self.optimizer_G = torch.optim.Adam(self.G.parameters(), lr=self.opt.lr, betas=(self.opt.b1, self.opt.b2))
-        self.optimizer_D = torch.optim.Adam(self.D.parameters(), lr=self.opt.lr, betas=(self.opt.b1, self.opt.b2))
+        self.optimizer_G = torch.optim.Adam(self.G.parameters(), lr=self.g_lr, betas=(self.opt.b1, self.opt.b2))
+        self.optimizer_D = torch.optim.Adam(self.D.parameters(), lr=self.d_lr, betas=(self.opt.b1, self.opt.b2))
 
     def gradient_penalty(self, y, x):
         """Compute gradient penalty: (L2_norm(dy/dx) - 1)**2."""
@@ -155,3 +160,9 @@ class WGan():
                     torch.save(self.D.state_dict(), D_path)
                     print('Saved model checkpoints into {}...'.format(self.model_save_dir))
                 #batches_done += self.opt.n_critic
+
+                # Decay learning rates.
+                # if (i + 1) % self.lr_update_step == 0 and (i + 1) > (self.num_iters - self.num_iters_decay):
+                #     self.g_lr -= (self.g_lr / float(self.num_iters_decay))
+                #     self.d_lr -= (self.d_lr / float(self.num_iters_decay))
+                #     print('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(self.g_lr, self.d_lr))
