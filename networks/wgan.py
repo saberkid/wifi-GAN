@@ -220,5 +220,5 @@ class WGan():
                 _, out_cls = self.D(x)
                 _, predicted = torch.max(out_cls.data.cpu(), 1)
                 total += out_cls.size(0)
-                correct += (predicted == c_org).sum().item()
+                correct += (predicted == c_org.long()).sum().item()
         print('Accuracy of the network on the test samples: %d %%' % (100 * correct / total))
