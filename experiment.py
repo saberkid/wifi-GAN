@@ -5,7 +5,7 @@ from networks.wgan import WGan
 import numpy as np
 os.makedirs("output", exist_ok=True)
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', type=str, default='test_d', choices=['train', 'test', 'test_d'])
+parser.add_argument('--mode', type=str, default='train', choices=['train', 'test', 'test_d'])
 
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
