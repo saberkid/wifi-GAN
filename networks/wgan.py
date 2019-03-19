@@ -198,8 +198,9 @@ class WGan():
 
             # Save the output.
 
-            x_fake_list = np.asarray(x_fake_list)
-            label_list = np.asarray(label_list)
+            x_fake_list = np.asarray(x_fake_list).reshape(5962, 56, 48, 16)
+            label_list = np.asarray(label_list).reshape(5962, 6).int()
+            _, label_list = torch.max(label_list, 1)
             result_path_data = os.path.join(self.result_dir, 'output_data.pkl')
             result_path_label = os.path.join(self.result_dir, 'output_label.pkl')
             np.save(result_path_data, x_fake_list)
