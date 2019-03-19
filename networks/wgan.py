@@ -191,19 +191,19 @@ class WGan():
                 batch_labels_trg = c_org[rand_idx].to(self.device)
                 c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
                 c_trg = c_trg.to(self.device)
-
+                _, labels_trg = torch.max(c_trg, 1)
                 if start_flag:
                     x_fake_list = np.concatenate((x_fake_list, self.G(x_real, c_trg).cpu().numpy()), 0)
-                    label_list = np.concatenate((label_list, c_trg.cpu().numpy()), 0)
+                    label_list = np.concatenate((label_list, labels_trg.cpu().numpy()), 0)
                 else:
                     x_fake_list = self.G(x_real, c_trg).cpu().numpy()
-                    label_list = c_trg.cpu().numpy()
+                    label_list = labels_trg.cpu().numpy()
                     start_flag = 1
 
             # Save the output.
             x_fake_list = x_fake_list.swapaxes(1, 3)
             print(x_fake_list.shape)
-            _, label_list = torch.max(label_list, 1)
+
             result_path_data = os.path.join(self.result_dir, 'output_data.pkl')
             result_path_label = os.path.join(self.result_dir, 'output_label.pkl')
             np.save(result_path_data, x_fake_list)
