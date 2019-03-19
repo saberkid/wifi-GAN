@@ -181,8 +181,7 @@ class WGan():
         # Load the trained generator.
         self.restore_model(self.test_iters)
         with torch.no_grad():
-            x_fake_list = None
-            label_list = None
+            start_flag = 0
             for i, (x_real, c_org) in enumerate(self.dataloader):
 
                 # Prepare input images and target domain labels.
@@ -193,12 +192,13 @@ class WGan():
                 c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
                 c_trg = c_trg.to(self.device)
 
-                if x_fake_list:
+                if start_flag:
                     x_fake_list.concatenate(self.G(x_real, c_trg).cpu().numpy(), 0)
                     label_list.concatenate(c_trg.cpu().numpy(), 0)
                 else:
                     x_fake_list = self.G(x_real, c_trg).cpu().numpy()
                     label_list = c_trg.cpu().numpy()
+                    start_flag = 1
 
             # Save the output.
             x_fake_list = x_fake_list.swapaxes(1, 3)
