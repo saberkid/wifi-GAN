@@ -25,12 +25,12 @@ parser.add_argument('--test_iters', type=int, default=10, help='test model from 
 parser.add_argument('--model_save_dir', type=str, default='checkpoint')
 parser.add_argument('--result_dir', type=str, default='output')
 parser.add_argument('--input_data_path', type=str, default='./csiset_5952_56_48_16.npy')
-parser.add_argument('--input_data_path', type=str, default='./target.npy')
+parser.add_argument('--input_label_path', type=str, default='./target.npy')
 opt = parser.parse_args()
 
 if __name__ == '__main__':
     csifile = np.load(opt.input_data_path)
-    targetfile = np.load(opt.input_data_path)
+    targetfile = np.load(opt.input_label_path)
     # csifile = np.load('csiset_test.npy')
     # targetfile = np.load('target_test.npy')
     #input_shape = (56, 10, 10)
