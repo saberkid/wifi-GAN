@@ -181,8 +181,8 @@ class WGan():
         # Load the trained generator.
         self.restore_model(self.test_iters)
         with torch.no_grad():
-            x_fake_list = []
-            label_list = []
+            x_fake_list = None
+            label_list = None
             for i, (x_real, c_org) in enumerate(self.dataloader):
 
                 # Prepare input images and target domain labels.
@@ -193,13 +193,16 @@ class WGan():
                 c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
                 c_trg = c_trg.to(self.device)
 
-                x_fake_list.append(self.G(x_real, c_trg).cpu().numpy())
-                label_list.append(c_trg.cpu().numpy())
+                if x_fake_list:
+                    x_fake_list.concatenate(self.G(x_real, c_trg).cpu().numpy(), 0)
+                    label_list.concatenate(c_trg.cpu().numpy(), 0)
+                else:
+                    x_fake_list = self.G(x_real, c_trg).cpu().numpy()
+                    label_list = c_trg.cpu().numpy()
 
             # Save the output.
-
-            x_fake_list = np.asarray(x_fake_list).reshape(5962, 56, 48, 16)
-            label_list = np.asarray(label_list).reshape(5962, 6).int()
+            x_fake_list = x_fake_list.swapaxes(1, 3)
+            print(x_fake_list.shape)
             _, label_list = torch.max(label_list, 1)
             result_path_data = os.path.join(self.result_dir, 'output_data.pkl')
             result_path_label = os.path.join(self.result_dir, 'output_label.pkl')
