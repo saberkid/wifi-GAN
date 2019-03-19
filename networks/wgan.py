@@ -193,8 +193,8 @@ class WGan():
                 c_trg = c_trg.to(self.device)
 
                 if start_flag:
-                    x_fake_list.concatenate(self.G(x_real, c_trg).cpu().numpy(), 0)
-                    label_list.concatenate(c_trg.cpu().numpy(), 0)
+                    x_fake_list = np.concatenate((x_fake_list, self.G(x_real, c_trg).cpu().numpy()), 0)
+                    label_list = np.concatenate((label_list, c_trg.cpu().numpy()), 0)
                 else:
                     x_fake_list = self.G(x_real, c_trg).cpu().numpy()
                     label_list = c_trg.cpu().numpy()
