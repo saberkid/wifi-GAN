@@ -33,7 +33,7 @@ class WGan():
         self.model_save_dir = opt.model_save_dir
         self.result_dir = opt.result_dir
         # TODO rewrite in opt
-        self.lambda_cls = 1
+        self.lambda_cls = 10
         self.lambda_rec = 10
         self.model_save_epoch = 10
 
