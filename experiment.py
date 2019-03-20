@@ -1,4 +1,7 @@
 import argparse
+
+from torch.utils.data.sampler import SubsetRandomSampler
+
 import dataset
 import os
 from networks.wgan import WGan
@@ -35,7 +38,23 @@ if __name__ == '__main__':
     # targetfile = np.load('target_test.npy')
     #input_shape = (56, 10, 10)
     data = dataset.CSISet(csifile, targetfile)
-    dataloader = dataset.CSILoader(data, opt)
+
+    random_seed = 42
+    shuffle = True
+    # Creating data indices for training and validation splits:
+    dataset_size = len(data)
+    indices = list(range(dataset_size))
+    validation_split = 0.2
+    split = int(np.floor(validation_split * dataset_size))
+    if shuffle:
+        np.random.seed(random_seed)
+        np.random.shuffle(indices)
+    train_indices, val_indices = indices[split:], indices[:split]
+
+    # Creating PT data samplers and loaders:
+    train_sampler = SubsetRandomSampler(train_indices)
+    valid_sampler = SubsetRandomSampler(val_indices)
+    dataloader = {'train': dataset.CSILoader(data, opt,sampler=train_sampler), 'val': dataset.CSILoader(data, opt,sampler=valid_sampler)}
     csigan = WGan(opt, dataloader)
 
     if opt.mode == 'train':

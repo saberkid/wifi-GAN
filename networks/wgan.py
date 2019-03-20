@@ -33,7 +33,7 @@ class WGan():
         self.model_save_dir = opt.model_save_dir
         self.result_dir = opt.result_dir
         # TODO rewrite in opt
-        self.lambda_cls = 10
+        self.lambda_cls = 1
         self.lambda_rec = 10
         self.model_save_epoch = 10
 
@@ -101,7 +101,7 @@ class WGan():
 
     def train(self):
         for epoch in range(self.opt.n_epochs):
-            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
+            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader['train']):
 
                 X = Variable(batch_imgs).float().to(self.device)
                 # Generate target domain labels randomly.
@@ -191,7 +191,7 @@ class WGan():
         self.restore_model(self.test_iters)
         with torch.no_grad():
             start_flag = 0
-            for i, (x_real, c_org) in enumerate(self.dataloader):
+            for i, (x_real, c_org) in enumerate(self.dataloade['val']):
 
                 # Prepare input images and target domain labels.
                 x_real = x_real.float().to(self.device)
@@ -226,7 +226,7 @@ class WGan():
             label_list = []
             correct = 0
             total = 0
-            for i, (x, c_org) in enumerate(self.dataloader):
+            for i, (x, c_org) in enumerate(self.dataloader['val']):
                 # Prepare input images and target domain labels.
                 x = x.float().to(self.device)
 
