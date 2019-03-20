@@ -101,7 +101,7 @@ class WGan():
 
     def train(self):
         for epoch in range(self.opt.n_epochs):
-            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader['train']):
+            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
 
                 X = Variable(batch_imgs).float().to(self.device)
                 # Generate target domain labels randomly.
