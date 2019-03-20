@@ -92,9 +92,16 @@ class WGan():
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
 
+    def update_lr(self, g_lr, d_lr):
+        """Decay learning rates of the generator and discriminator."""
+        for param_group in self.optimizer_G.param_groups:
+            param_group['lr'] = g_lr
+        for param_group in self.optimizer_D.param_groups:
+            param_group['lr'] = d_lr
+
     def train(self):
         for epoch in range(self.opt.n_epochs):
-            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
+            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader['train']):
 
                 X = Variable(batch_imgs).float().to(self.device)
                 # Generate target domain labels randomly.
@@ -171,22 +178,23 @@ class WGan():
                 print('Saved model checkpoints into {}...'.format(self.model_save_dir))
                 #batches_done += self.opt.n_critic
 
-                # Decay learning rates.
-                # if (i + 1) % self.lr_update_step == 0 and (i + 1) > (self.num_iters - self.num_iters_decay):
-                #     self.g_lr -= (self.g_lr / float(self.num_iters_decay))
-                #     self.d_lr -= (self.d_lr / float(self.num_iters_decay))
-                #     print('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(self.g_lr, self.d_lr))
+            #Decay learning rates.
+            # if (i + 1) % self.lr_update_step == 0 and (i + 1) > (self.num_iters - self.num_iters_decay):
+            #     self.g_lr -= (self.g_lr / float(self.num_iters_decay))
+            #     self.d_lr -= (self.d_lr / float(self.num_iters_decay))
+            #     print('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(self.g_lr, self.d_lr))
+
+
     def test(self):
         """Translate images using StarGAN trained on a single dataset."""
         # Load the trained generator.
         self.restore_model(self.test_iters)
         with torch.no_grad():
             start_flag = 0
-            for i, (x_real, c_org) in enumerate(self.dataloader):
+            for i, (x_real, c_org) in enumerate(self.dataloader['val']):
 
                 # Prepare input images and target domain labels.
                 x_real = x_real.float().to(self.device)
-                #c_trg_list = self.create_labels(c_org, self.c_dim)
                 rand_idx = torch.randperm(c_org.size(0))
                 batch_labels_trg = c_org[rand_idx].to(self.device)
                 c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
@@ -213,11 +221,9 @@ class WGan():
     def test_d(self):
         self.restore_model(self.test_iters)
         with torch.no_grad():
-            x_fake_list = []
-            label_list = []
             correct = 0
             total = 0
-            for i, (x, c_org) in enumerate(self.dataloader):
+            for i, (x, c_org) in enumerate(self.dataloader['val']):
                 # Prepare input images and target domain labels.
                 x = x.float().to(self.device)
 
