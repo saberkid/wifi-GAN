@@ -46,6 +46,7 @@ if __name__ == '__main__':
     indices = list(range(dataset_size))
     validation_split = 0.2
     split = int(np.floor(validation_split * dataset_size))
+    print(split)
     if shuffle:
         np.random.seed(random_seed)
         np.random.shuffle(indices)

@@ -166,7 +166,7 @@ class WGan():
 
                     print(
                         "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                        % (epoch, self.opt.n_epochs, i, len(self.dataloader), d_loss.item(), g_loss.item())
+                        % (epoch, self.opt.n_epochs, i, len(self.dataloader['train']), d_loss.item(), g_loss.item())
                     )
 
                 #Save model checkpoints.
