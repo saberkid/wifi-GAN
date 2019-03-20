@@ -136,7 +136,7 @@ class WGan():
                 d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
                 # Backward and optimize.
-                #print(d_loss_real)
+                print("dloss_real:{}, dloss_fake:{}, dloss_cls{}, dloss_gp:{}".format(d_loss_real, d_loss_fake, d_loss_cls, d_loss_gp))
                 d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
                 self.reset_grad()
                 d_loss.backward()
@@ -191,7 +191,7 @@ class WGan():
         self.restore_model(self.test_iters)
         with torch.no_grad():
             start_flag = 0
-            for i, (x_real, c_org) in enumerate(self.dataloade['val']):
+            for i, (x_real, c_org) in enumerate(self.dataloader['val']):
 
                 # Prepare input images and target domain labels.
                 x_real = x_real.float().to(self.device)
