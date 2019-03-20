@@ -191,10 +191,11 @@ class WGan():
         self.restore_model(self.test_iters)
         with torch.no_grad():
             start_flag = 0
-            for i, (x_real, c_org) in enumerate(self.dataloader['val']):
+            for i, (x_real, c_org) in enumerate(self.dataloader):
 
                 # Prepare input images and target domain labels.
                 x_real = x_real.float().to(self.device)
+                #c_trg_list = self.create_labels(c_org, self.c_dim)
                 rand_idx = torch.randperm(c_org.size(0))
                 batch_labels_trg = c_org[rand_idx].to(self.device)
                 c_trg = self.label2onehot(batch_labels_trg, self.c_dim)
@@ -221,9 +222,11 @@ class WGan():
     def test_d(self):
         self.restore_model(self.test_iters)
         with torch.no_grad():
+            x_fake_list = []
+            label_list = []
             correct = 0
             total = 0
-            for i, (x, c_org) in enumerate(self.dataloader['val']):
+            for i, (x, c_org) in enumerate(self.dataloader):
                 # Prepare input images and target domain labels.
                 x = x.float().to(self.device)
 
