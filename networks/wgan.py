@@ -131,9 +131,9 @@ class WGan():
                 x_hat = (alpha * X.data + (1 - alpha) * x_fake.data).requires_grad_(True)
                 out_src, _ = self.D(x_hat)
                 d_loss_gp = self.gradient_penalty(out_src, x_hat)
-
+                wd = d_loss_real + d_loss_fake
                 # Backward and optimize.
-                print("dloss_real:{}, dloss_fake:{}, dloss_cls{}, dloss_gp:{}".format(d_loss_real, d_loss_fake, d_loss_cls, d_loss_gp))
+                print("dloss_real:{}, dloss_fake:{}, dloss_cls{}, dloss_gp:{}, WD:{}".format(d_loss_real, d_loss_fake, d_loss_cls, d_loss_gp, wd))
                 d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
                 self.reset_grad()
                 d_loss.backward()
