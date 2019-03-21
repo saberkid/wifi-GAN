@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--mode', type=str, default='train', choices=['train', 'test', 'test_d'])
 
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
 parser.add_argument("--c_dim", type=int, default=6, help="num of classes")
 parser.add_argument("--lambda_gp", type=int, default=10, help="lambda for gradient penalty")
 parser.add_argument("--lambda_cls", type=int, default=1, help="lambda for cls")
