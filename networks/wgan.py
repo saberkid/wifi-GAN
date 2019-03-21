@@ -23,21 +23,19 @@ class WGan():
             self.G.cuda()
             self.D.cuda()
         # Loss weight for gradient penalty
-        self.lambda_gp = 10
+        self.lambda_gp = opt.lambda_gp
         self.Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-        self.c_dim = 6
+        self.c_dim = opt.c_dim
         self.g_lr = opt.g_lr
         self.d_lr = opt.d_lr
         self.n_critic = opt.n_critic
         self.test_iters = opt.test_iters
         self.model_save_dir = opt.model_save_dir
         self.result_dir = opt.result_dir
-        # TODO rewrite in opt
-        self.lambda_cls = 1
-        self.lambda_rec = 10
-        self.model_save_epoch = 10
-
-        self.lr_update_step = 1000
+        self.lambda_cls = opt.lambda_cls
+        self.lambda_rec = opt.lambda_rec
+        self.model_save_epoch = opt.model_save_epoch
+        #self.lr_update_step = 1000
         self._init_optimizer()
 
     # Optimizers
@@ -102,7 +100,6 @@ class WGan():
     def train(self):
         for epoch in range(self.opt.n_epochs):
             for i, (batch_imgs, batch_labels) in enumerate(self.dataloader['train']):
-                print(batch_imgs[0])
                 X = Variable(batch_imgs).float().to(self.device)
                 # Generate target domain labels randomly.
                 batch_labels = batch_labels.long().to(self.device)

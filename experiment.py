@@ -12,6 +12,10 @@ parser.add_argument('--mode', type=str, default='train', choices=['train', 'test
 
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument("--c_dim", type=int, default=6, help="num of classes")
+parser.add_argument("--lambda_gp", type=int, default=5, help="lambda for gradient penalty")
+parser.add_argument("--lambda_cls", type=int, default=1, help="lambda for cls")
+parser.add_argument("--lambda_rec", type=int, default=10, help="lambda for reconstruction")
 parser.add_argument("--g_lr", type=float, default=0.0001, help="adam: generator learning rate")
 parser.add_argument("--d_lr", type=float, default=0.0001, help="adam: discriminator learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
@@ -26,6 +30,7 @@ parser.add_argument("--sample_interval", type=int, default=400, help="interval b
 parser.add_argument('--test_iters', type=int, default=10, help='test model from this step')
 
 parser.add_argument('--model_save_dir', type=str, default='checkpoint')
+parser.add_argument('--model_save_epoch', type=int, default=10, help='epochs to save a checkpoint')
 parser.add_argument('--result_dir', type=str, default='output')
 parser.add_argument('--input_data_path', type=str, default='./csiset_5952_56_48_16.npy')
 parser.add_argument('--input_label_path', type=str, default='./target.npy')
