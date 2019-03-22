@@ -66,8 +66,6 @@ valid_sampler = SubsetRandomSampler(val_indices)
 trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
 testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
 
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
 
 print('==> Building model..')
 # net = VGG('VGG19')
@@ -81,11 +79,11 @@ net = vgg.VGG('VGG11')
 # net = ShuffleNetG2()
 # net = SENet18()
 
-result_folder = './results/'
-if not os.path.exists(result_folder):
-    os.makedirs(result_folder)
-
-logname = result_folder + net.__class__.__name__ + '_' + opt.sess + '_' + str(opt.seed) + '.csv'
+# result_folder = './results/'
+# if not os.path.exists(result_folder):
+#     os.makedirs(result_folder)
+#
+# logname = result_folder + net.__class__.__name__ + '_' + opt.sess + '_' + str(opt.seed) + '.csv'
 
 if use_cuda:
     net.cuda()
@@ -183,11 +181,11 @@ def adjust_learning_rate(optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-if not os.path.exists(logname):
-    with open(logname, 'w') as logfile:
-        logwriter = csv.writer(logfile, delimiter=',')
-        logwriter.writerow(['epoch', 'train loss', 'train acc', 'test loss', 'test acc'])
-
+# if not os.path.exists(logname):
+#     with open(logname, 'w') as logfile:
+#         logwriter = csv.writer(logfile, delimiter=',')
+#         logwriter.writerow(['epoch', 'train loss', 'train acc', 'test loss', 'test acc'])
+#
 
 if __name__ == '__main__':
     for epoch in range(start_epoch, 100):
