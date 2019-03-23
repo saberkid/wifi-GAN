@@ -57,9 +57,9 @@ indices = list(range(dataset_size))
 validation_split = 0.2
 split = int(np.floor(validation_split * dataset_size))
 print(split)
-if shuffle:
-    np.random.seed(random_seed)
-    np.random.shuffle(indices)
+# if shuffle:
+#     np.random.seed(random_seed)
+#     np.random.shuffle(indices)
 train_indices, val_indices = indices[split:], indices[:split]
 
 # Creating PT data samplers and loaders:
