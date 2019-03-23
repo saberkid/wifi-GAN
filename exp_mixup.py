@@ -28,6 +28,8 @@ parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument('--input_data_path', type=str, default='./csiset_5952_56_48_16.npy')
+parser.add_argument('--input_label_path', type=str, default='./target.npy')
 opt = parser.parse_args()
 
 torch.manual_seed(opt.seed)
