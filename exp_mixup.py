@@ -106,7 +106,7 @@ def train(epoch):
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
+            inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
         # generate mixed inputs, two one-hot label vectors and mixing coefficient
         inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, opt.alpha, use_cuda)
@@ -136,7 +136,7 @@ def test(epoch):
     total = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
         if use_cuda:
-            inputs, targets = inputs.float().cuda(), targets.cuda()
+            inputs, targets = inputs.float().cuda(), targets.long().cuda()
         inputs, targets = Variable(inputs, volatile=True), Variable(targets)
         outputs = net(inputs)
         loss = criterion(outputs, targets)
