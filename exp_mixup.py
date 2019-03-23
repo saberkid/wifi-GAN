@@ -27,7 +27,7 @@ parser.add_argument('--sess', default='mixup_default', type=str, help='session i
 parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
-parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=1, help="size of the batches")
 parser.add_argument('--input_data_path', type=str, default='./csiset_5952_56_48_16.npy')
 parser.add_argument('--input_label_path', type=str, default='./target.npy')
 opt = parser.parse_args()
@@ -37,7 +37,6 @@ torch.manual_seed(opt.seed)
 use_cuda = torch.cuda.is_available()
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-batch_size = 64
 base_learning_rate = 0.1
 
 # Data
@@ -46,20 +45,19 @@ csifile = np.load(opt.input_data_path)
 targetfile = np.load(opt.input_label_path)
 # csifile = np.load('csiset_test.npy')
 # targetfile = np.load('target_test.npy')
-#input_shape = (56, 10, 10)
 data = dataset.CSISet(csifile, targetfile)
 
 random_seed = 42
-shuffle = True
+shuffle = False
 # Creating data indices for training and validation splits:
 dataset_size = len(data)
 indices = list(range(dataset_size))
 validation_split = 0.2
 split = int(np.floor(validation_split * dataset_size))
 print(split)
-# if shuffle:
-#     np.random.seed(random_seed)
-#     np.random.shuffle(indices)
+if shuffle:
+    np.random.seed(random_seed)
+    np.random.shuffle(indices)
 train_indices, val_indices = indices[split:], indices[:split]
 
 # Creating PT data samplers and loaders:
@@ -68,6 +66,21 @@ valid_sampler = SubsetRandomSampler(val_indices)
 trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
 testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
 
+
+opt2 = opt.copy()
+opt2.batch_size = 1
+meanloader = dataset.CSILoader(data, opt2, sampler=train_sampler)
+start_flag = 0
+for batch_idx, (inputs, targets) in enumerate(meanloader):
+    if targets[0] == 0:
+        if start_flag:
+            x_list = np.concatenate((x_list, inputs), 0)
+
+        else:
+            x_list = inputs
+            start_flag = 1
+# mean value of empty sample
+x_mean = np.mean(x_list, axis=0)
 
 print('==> Building model..')
 # net = VGG('VGG19')
@@ -105,6 +118,7 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
+        inputs = inputs - x_mean
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
@@ -135,6 +149,7 @@ def test(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
+        inputs = inputs - x_mean
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
         inputs, targets = Variable(inputs, volatile=True), Variable(targets)
