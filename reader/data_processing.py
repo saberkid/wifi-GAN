@@ -2,17 +2,19 @@ import os
 
 from reader import Parser
 import numpy as np
+import pickle
 
 class_dict  = {'empty':0, 'living': 1, 'kitchen':2, 'chianyu':3, 'bathroom':4, 'jen':5}
 
 #============read CSI data from file======================
 # subcarrier channel, samples point, antena to antena
 filepath = '../data/ChianyuAptDay1'
-csiset = []
-target = []
+
 trim = 800
 
 for dir in os.listdir(filepath):
+    csiset = []
+    target = []
     for file in os.listdir(filepath + '/' + dir):
         filename = filepath + '/' + dir + '/' + file
         print(filename)
@@ -42,13 +44,14 @@ for dir in os.listdir(filepath):
             csiset.append(csiAmplitude_filtered_sub)
             target.append(classnum)
 
-csiset = np.array(csiset)
-target = np.array(target)
-csi_shape = csiset.shape
-print('csiAmplitude_filtered: ', csi_shape)
-print(target.shape)
-np.save("../csiset_{0}_{1}_{2}_{3}.npy".format(str(csi_shape[0]), str(csi_shape[1]), str(csi_shape[2]), str(csi_shape[3])), csiset)
-np.save("../target.npy", target)
+    csiset = np.array(csiset)
+    target = np.array(target)
+    data = {'x': csiset, 'y':target}
+    csi_shape = csiset.shape
+    print('csiAmplitude_filtered: ', csi_shape)
+    print(target.shape)
+    with open("../data/chianyu_{0}.pkl".format(dir), 'wb+') as f:
+        pickle.dump(data, f)
 
 ######################################################################
 #L2_csi, L2_rssi, L2_ntx = ParserTools.get_L2_NormsFiltered_data_adaptive()                                                                                     files)

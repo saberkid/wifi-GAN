@@ -13,13 +13,28 @@ import dataset
 import os
 import argparse
 import csv
-
+import pickle
 from torch.utils.data.sampler import SubsetRandomSampler
 
 from networks import vgg
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
+import glob
 
+def compute_mean(data):
+    data_x = data['x']
+    data_y = data['y']
+    start_flag = 0
+    for x, y in zip(data_x, data_y):
+        if y == 0:
+            if start_flag:
+                x_list = np.concatenate((x_list, x), 0)
+
+            else:
+                x_list = x[np.newaxis, ]
+                start_flag = 1
+    # mean value of empty sample
+    return np.mean(x_list, axis=0)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -28,8 +43,7 @@ parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
 parser.add_argument("--batch_size", type=int, default=1, help="size of the batches")
-parser.add_argument('--input_data_path', type=str, default='./csiset_5952_56_48_16.npy')
-parser.add_argument('--input_label_path', type=str, default='./target.npy')
+parser.add_argument('--input_data_path', type=str, default='./data')
 opt = parser.parse_args()
 
 torch.manual_seed(opt.seed)
@@ -40,11 +54,19 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 base_learning_rate = 0.1
 
 # Data
+flag = 0
+for data_file in glob.glob(r'{}/*.pkl'.format(opt.input_data_path)):
+    with open(data_file, 'rb') as f:
+        data = pickle.load(f)
+        x_mean = compute_mean(data)
+        if not flag:
+            csifile = data['x'] - x_mean
+            targetfile = data['y']
+            flag = 1
+        else:
+            csifile = np.concatenate((csifile, data['x'] - x_mean))
+            targetfile = np.concatenate((targetfile, data['y']))
 
-csifile = np.load(opt.input_data_path)
-targetfile = np.load(opt.input_label_path)
-# csifile = np.load('csiset_test.npy')
-# targetfile = np.load('target_test.npy')
 data = dataset.CSISet(csifile, targetfile)
 
 random_seed = 42
@@ -67,20 +89,6 @@ trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
 testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
 
 
-opt2 = opt.copy()
-opt2.batch_size = 1
-meanloader = dataset.CSILoader(data, opt2, sampler=train_sampler)
-start_flag = 0
-for batch_idx, (inputs, targets) in enumerate(meanloader):
-    if targets[0] == 0:
-        if start_flag:
-            x_list = np.concatenate((x_list, inputs), 0)
-
-        else:
-            x_list = inputs
-            start_flag = 1
-# mean value of empty sample
-x_mean = np.mean(x_list, axis=0)
 
 print('==> Building model..')
 # net = VGG('VGG19')
@@ -109,6 +117,8 @@ if use_cuda:
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=base_learning_rate, momentum=0.9, weight_decay=opt.decay)
+
+
 
 # Training
 def train(epoch):
