@@ -28,9 +28,7 @@ def compute_mean(data):
     for x, y in zip(data_x, data_y):
         if y == 0:
             if start_flag:
-                print(x_list.shape)
-                print(x.shape)
-                x_list = np.concatenate((x_list, x), 0)
+                x_list = np.concatenate((x_list, x[np.newaxis, ]), 0)
 
             else:
                 x_list = x[np.newaxis, ]
