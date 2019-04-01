@@ -20,7 +20,7 @@ from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
 
-def compute_mean(data):
+def compute_mean_std(data):
     data_x = data['x']
     data_y = data['y']
     start_flag = 0
@@ -33,7 +33,7 @@ def compute_mean(data):
                 x_list = x[np.newaxis, ]
                 start_flag = 1
     # mean value of empty sample
-    return np.mean(x_list, axis=0)
+    return np.mean(x_list, axis=0), np.std(x_list, axis=0)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -57,13 +57,13 @@ flag = 0
 for data_file in glob.glob(r'{}/*.pkl'.format(opt.input_data_path)):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
-        x_mean = compute_mean(data)
+        x_mean, x_std = compute_mean_std(data)
         if not flag:
-            csifile = data['x'] - x_mean
+            csifile = (data['x'] - x_mean) / x_std
             targetfile = data['y']
             flag = 1
         else:
-            csifile = np.concatenate((csifile, data['x'] - x_mean))
+            csifile = np.concatenate((csifile, (data['x'] - x_mean) / x_std))
             targetfile = np.concatenate((targetfile, data['y']))
 
 data = dataset.CSISet(csifile, targetfile)
