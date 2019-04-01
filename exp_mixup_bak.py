@@ -15,12 +15,13 @@ import csv
 import pickle
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from networks import vgg
+from networks import vgg, resnet
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
 
-def compute_mean(data):
+
+def preprocess(data):
     data_x = data['x']
     data_y = data['y']
     start_flag = 0
@@ -28,12 +29,36 @@ def compute_mean(data):
         #if y == 0:
             if start_flag:
                 x_list = np.concatenate((x_list, x[np.newaxis, ]), 0)
-
             else:
                 x_list = x[np.newaxis, ]
                 start_flag = 1
     # mean value of empty sample
-    return np.mean(x_list, axis=0)
+    x_mean = np.mean(x_list, axis=0)
+    x_std = np.std(x_list, axis=0)
+    return (x_list - x_mean) / x_std, data_y
+
+def preprocess_shrink(data):
+    data_x = data['x']
+    data_y = data['y']
+    start_flag = 0
+    shrink_ratio = 5
+    shrink_count = 0
+    for x, y in zip(data_x, data_y):
+        # if y != 0: # for the non-empty case
+        #     shrink_count += 1
+        #     if shrink_count % shrink_ratio == 0 or shrink_count % shrink_ratio == 1:
+        #         x_list = np.concatenate((x_list, x[np.newaxis, ]), 0)
+        #         y_list = np.concatenate((y_list, y[np.newaxis, ]), 0)
+        # else:
+            if start_flag:
+                x_list = np.concatenate((x_list, x[np.newaxis,]), 0)
+            else:
+                x_list = x[np.newaxis, ]
+                start_flag = 1
+    # mean value of empty sample
+    x_mean = np.mean(x_list, axis=0)
+    x_std = np.std(x_list, axis=0)
+    return (x_list - x_mean) / x_std, data_y
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -54,45 +79,63 @@ base_learning_rate = 0.1
 
 # Data
 flag = 0
-for data_file in glob.glob(r'{}/*.pkl'.format(opt.input_data_path)):
-    with open(data_file, 'rb') as f:
+for i in range(8, 32):
+    if i + 1 < 10:
+        filename = 'data/chianyu_round0' + str(i+1) + '.pkl'
+    else:
+        filename = 'data/chianyu_round' + str(i+1) + '.pkl'
+    with open(filename, 'rb') as f:
         data = pickle.load(f)
-        x_mean = compute_mean(data)
+        x_list_train, y_list_train = preprocess_shrink(data)
         if not flag:
-            csifile = data['x'] - x_mean
-            targetfile = data['y']
+            x_train = x_list_train
+            y_train = y_list_train
             flag = 1
         else:
-            csifile = np.concatenate((csifile, data['x'] - x_mean))
-            targetfile = np.concatenate((targetfile, data['y']))
+            x_train = np.concatenate((x_train, x_list_train))
+            y_train = np.concatenate((y_train, y_list_train))
 
-data = dataset.CSISet(csifile, targetfile)
+flag = 0
+for i in range(8):
+    if i + 1 < 10:
+        filename = 'data/chianyu_round0' + str(i + 1) + '.pkl'
+    else:
+        filename = 'data/chianyu_round' + str(i + 1) + '.pkl'
+    with open(filename, 'rb') as f:
+        data = pickle.load(f)
+        x_list_val, y_list_val = preprocess(data)
+        if not flag:
+            x_val = x_list_val
+            y_val = y_list_val
+            flag = 1
+        else:
+            x_val= np.concatenate((x_val, x_list_val))
+            y_val = np.concatenate((y_val, y_list_val))
 
-random_seed = 42
-shuffle = False
-# Creating data indices for training and validation splits:
-dataset_size = len(data)
-indices = list(range(dataset_size))
-validation_split = 0.25
-split = int(np.floor(validation_split * dataset_size))
-print(split)
-if shuffle:
-    np.random.seed(random_seed)
-    np.random.shuffle(indices)
-train_indices, val_indices = indices[split:], indices[:split]
+print('trainsize:{}'.format(y_train.shape))
+print('valsize:{}'.format(y_val.shape))
+data_train = dataset.CSISet(x_train, y_train)
+data_val = dataset.CSISet(x_val, y_val)
+
+# random_seed = 42
+# shuffle = False
+#
+# if shuffle:
+#     np.random.seed(random_seed)
+#     np.random.shuffle(indices)
 
 # Creating PT data samplers and loaders:
-train_sampler = SubsetRandomSampler(train_indices)
-valid_sampler = SubsetRandomSampler(val_indices)
-trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
-testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
+
+trainloader = dataset.CSILoader(data_train, opt)
+testloader = dataset.CSILoader(data_val, opt)
 
 
 
 print('==> Building model..')
 # net = VGG('VGG19')
 net = vgg.VGG('VGG11')
-# net = ResNet18()
+
+#net = resnet.ResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
@@ -169,7 +212,7 @@ def test(epoch):
         correct += predicted.eq(targets.data).cpu().sum()
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            % (test_loss/(batch_idx+1), 100.0*float(correct)/total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total

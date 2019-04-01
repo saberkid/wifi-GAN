@@ -8,7 +8,7 @@ class_dict  = {'empty':0, 'living': 1, 'kitchen':2, 'chianyu':3, 'bathroom':4, '
 
 #============read CSI data from file======================
 # subcarrier channel, samples point, antena to antena
-filepath = '../data/ChianyuAptDay1'
+filepath = '../data/32-'
 
 trim = 800
 
@@ -38,9 +38,6 @@ for dir in os.listdir(filepath):
         #sliding window
         for i in range(32):
             csiAmplitude_filtered_sub = csiAmplitude_filtered[:, i * 24:i * 24 + 48, ]
-            # # To 2D
-            # csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.reshape(56, 10, 10)
-            #csiAmplitude_filtered_sub = csiAmplitude_filtered_sub.swapaxes(0, 2)
             csiset.append(csiAmplitude_filtered_sub)
             target.append(classnum)
 

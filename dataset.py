@@ -8,7 +8,7 @@ class CSISet(Dataset):
         self._csi = csifile
         self._target = targetfile
         transform = []
-        transform.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+        #transform.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
         self.transform = T.Compose(transform)
 
 
@@ -23,15 +23,15 @@ class CSISet(Dataset):
     def preprocess(self, data):
         data = data.swapaxes(0, 2)
         data = torch.from_numpy(data)
-        min_v = torch.min(data)
-        range_v = torch.max(data) - min_v
-        if range_v > 0:
-            normalised = (data - min_v) / range_v
-        else:
-            normalised = torch.zeros(data.size())
-        return self.transform(normalised)
+        # min_v = torch.min(data)
+        # range_v = torch.max(data) - min_v
+        # if range_v > 0:
+        #     normalised = (data - min_v) / range_v
+        # else:
+        #     normalised = torch.zeros(data.size())
+        return self.transform(data)
 
 
 class CSILoader(DataLoader):
-    def __init__(self, dataset, opt, sampler):
+    def __init__(self, dataset, opt, sampler=None):
         super(CSILoader,self).__init__(dataset,batch_size=opt.batch_size, sampler=sampler)

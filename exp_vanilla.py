@@ -25,7 +25,7 @@ def compute_mean(data):
     data_y = data['y']
     start_flag = 0
     for x, y in zip(data_x, data_y):
-        #if y == 0:
+        if y == 0:
             if start_flag:
                 x_list = np.concatenate((x_list, x[np.newaxis, ]), 0)
 
@@ -35,7 +35,7 @@ def compute_mean(data):
     # mean value of empty sample
     return np.mean(x_list, axis=0)
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+parser = argparse.ArgumentParser()
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 parser.add_argument('--sess', default='mixup_default', type=str, help='session id')
 parser.add_argument('--seed', default=0, type=int, help='rng seed')
@@ -73,7 +73,7 @@ shuffle = False
 # Creating data indices for training and validation splits:
 dataset_size = len(data)
 indices = list(range(dataset_size))
-validation_split = 0.25
+validation_split = 0.2
 split = int(np.floor(validation_split * dataset_size))
 print(split)
 if shuffle:
@@ -130,28 +130,25 @@ def train(epoch):
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
-        # generate mixed inputs, two one-hot label vectors and mixing coefficient
-        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, opt.alpha, use_cuda)
         optimizer.zero_grad()
-        inputs, targets_a, targets_b = Variable(inputs), Variable(targets_a), Variable(targets_b)
+        inputs, targets = Variable(inputs), Variable(targets)
         outputs = net(inputs)
 
-        loss_func = mixup_criterion(targets_a, targets_b, lam)
-        loss = loss_func(criterion, outputs)
+        loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
 
         train_loss += loss.data.item()
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
-        correct += lam * predicted.eq(targets_a.data).cpu().sum() + (1 - lam) * predicted.eq(targets_b.data).cpu().sum()
+        correct += predicted.eq(targets.data).cpu().sum()
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    return (train_loss/batch_idx, 100.*correct/total)
+    return train_loss / batch_idx, 100. * correct / total
 
 def test(epoch):
-    global best_acc
+    global best_acc, batch_idx
     net.eval()
     test_loss = 0
     correct = 0
@@ -169,14 +166,15 @@ def test(epoch):
         correct += predicted.eq(targets.data).cpu().sum()
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            % (test_loss/(batch_idx+1), 100.0*float(correct)/total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
         best_acc = acc
         checkpoint(acc, epoch)
-    return (test_loss/batch_idx, 100.*correct/total)
+    return test_loss / batch_idx, 100. * correct / total
+
 
 def checkpoint(acc, epoch):
     # Save checkpoint.
@@ -191,6 +189,7 @@ def checkpoint(acc, epoch):
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt.t7.' + opt.sess + '_' + str(opt.seed))
+
 
 def adjust_learning_rate(optimizer, epoch):
     """decrease the learning rate at 100 and 150 epoch"""
@@ -210,6 +209,7 @@ def adjust_learning_rate(optimizer, epoch):
 #         logwriter = csv.writer(logfile, delimiter=',')
 #         logwriter.writerow(['epoch', 'train loss', 'train acc', 'test loss', 'test acc'])
 #
+
 
 if __name__ == '__main__':
     for epoch in range(start_epoch, 100):
