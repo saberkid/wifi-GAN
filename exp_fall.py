@@ -43,7 +43,7 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
                 data_y.append(label_y)
 
 data_x = np.asarray(data_x)
-data_x = data_x.swapaxes(1, 2)
+data_x = data_x.swapaxes(2, 3)
 #data_x = data_x.reshape(-1, 100, 150, 3)
 data_y = np.asarray(data_y)
 
