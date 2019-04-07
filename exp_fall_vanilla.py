@@ -120,29 +120,25 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        #print(inputs.shape)
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
-        # generate mixed inputs, two one-hot label vectors and mixing coefficient
-        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, opt.alpha, use_cuda)
         optimizer.zero_grad()
-        inputs, targets_a, targets_b = Variable(inputs), Variable(targets_a), Variable(targets_b)
+        inputs, targets = Variable(inputs), Variable(targets)
         outputs = net(inputs)
 
-        loss_func = mixup_criterion(targets_a, targets_b, lam)
-        loss = loss_func(criterion, outputs)
+        loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
 
         train_loss += loss.data.item()
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
-        correct += lam * predicted.eq(targets_a.data).cpu().sum() + (1 - lam) * predicted.eq(targets_b.data).cpu().sum()
+        correct += predicted.eq(targets.data).cpu().sum()
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    return (train_loss/batch_idx, 100.*correct/total)
+                     % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
+    return train_loss / batch_idx, 100. * correct / total
 
 def test(epoch):
     global best_acc
