@@ -20,19 +20,31 @@ from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
 
-def compute_mean_std(data):
-    data_x = data['x']
-    data_y = data['y']
-    start_flag = 0
-    for x, y in zip(data_x, data_y):
-        #if y == 0:
-            if start_flag:
-                x_list = np.concatenate((x_list, x[np.newaxis, ]), 0)
+label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
+data_path = 'data/falldata'
+trim = 4500
+data_x = []
+data_y = []
+for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
+    with open(data_file, 'rb') as f:
+        label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
+        data = pickle.load(f)
+        for sample in data:
+            if len(sample) < 4500:
+                continue
+            discard = (len(sample) - trim) // 2
+            sample_trimed = sample[discard: discard + trim]
+            #print(len(sample_trimed))
+            for i in range(7):
+                sample_1500 = sample_trimed[i * 500: i * 500 + 1500]
+                sample_500 = sample_1500[::3] # down sampling
+                #print(len(sample_500))
+                data_x.append(sample_500)
+                data_y.append(label_y)
 
-            else:
-                x_list = x[np.newaxis, ]
-                start_flag = 1
-    return np.mean(x_list, axis=0), np.std(x_list, axis=0)
+data_x = np.asarray(data_x)
+data_x = data_x.swapaxes(2, 3)
+data_y = np.asarray(data_y)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -40,53 +52,31 @@ parser.add_argument('--sess', default='mixup_default', type=str, help='session i
 parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
+parser.add_argument('--opt.base_lr', default=0.1, type=float, help='base learning rate')
 parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
 parser.add_argument('--input_data_path', type=str, default='./data')
-opt = parser.parse_args()
-
-torch.manual_seed(opt.seed)
 
 use_cuda = torch.cuda.is_available()
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-base_learning_rate = 0.1
+opt = parser.parse_args()
+torch.manual_seed(opt.seed)
 
-# Data
-flag = 0
-for data_file in glob.glob(r'{}/*.pkl'.format(opt.input_data_path)):
-    with open(data_file, 'rb') as f:
-        data = pickle.load(f)
-        x_mean, x_std = compute_mean_std(data)
-        if not flag:
-            csifile = (data['x'] - x_mean) / x_std
-            targetfile = data['y']
-            flag = 1
-        else:
-            csifile = np.concatenate((csifile, (data['x'] - x_mean) / x_std))
-            targetfile = np.concatenate((targetfile, data['y']))
-
-data = dataset.CSISet(csifile, targetfile)
-
-random_seed = 42
-shuffle = False
+shuffle = True
 # Creating data indices for training and validation splits:
+data = dataset.CSISet(data_x, data_y)
 dataset_size = len(data)
 indices = list(range(dataset_size))
 split = 0.8
 split = int(np.floor(split * dataset_size))
 print(split)
 if shuffle:
-    np.random.seed(random_seed)
+    np.random.seed(opt.seed)
     np.random.shuffle(indices)
 #train_indices, val_indices = indices[split:], indices[:split]
 train_indices, val_indices = indices[:split], indices[split:]
-
-# Creating PT data samplers and loaders:
 train_sampler = SubsetRandomSampler(train_indices)
 valid_sampler = SubsetRandomSampler(val_indices)
 trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
 testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
-
 
 
 print('==> Building model..')
@@ -115,7 +105,7 @@ if use_cuda:
     print('Using CUDA..')
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=base_learning_rate, momentum=0.9, weight_decay=opt.decay)
+optimizer = optim.SGD(net.parameters(), lr=opt.base_lr, momentum=0.9, weight_decay=opt.decay)
 
 
 
@@ -194,10 +184,10 @@ def checkpoint(acc, epoch):
 
 def adjust_learning_rate(optimizer, epoch):
     """decrease the learning rate at 100 and 150 epoch"""
-    lr = base_learning_rate
+    lr = opt.base_lr
     if epoch <= 9 and lr > 0.1:
         # warm-up training for large minibatch
-        lr = 0.1 + (base_learning_rate - 0.1) * epoch / 10.
+        lr = 0.1 + (opt.base_lr - 0.1) * epoch / 10.
     if epoch >= 100:
         lr /= 10
     if epoch >= 150:
@@ -212,7 +202,7 @@ def adjust_learning_rate(optimizer, epoch):
 #
 
 if __name__ == '__main__':
-    for epoch in range(start_epoch, 100):
+    for epoch in range(100):
         adjust_learning_rate(optimizer, epoch)
         train_loss, train_acc = train(epoch)
         test_loss, test_acc = test(epoch)

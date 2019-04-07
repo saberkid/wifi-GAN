@@ -79,7 +79,7 @@ base_learning_rate = 0.1
 
 # Data
 flag = 0
-for i in range(8, 32):
+for i in range(24):
     if i + 1 < 10:
         filename = 'data/chianyu_round0' + str(i+1) + '.pkl'
     else:
@@ -96,7 +96,7 @@ for i in range(8, 32):
             y_train = np.concatenate((y_train, y_list_train))
 
 flag = 0
-for i in range(8):
+for i in range(24, 32):
     if i + 1 < 10:
         filename = 'data/chianyu_round0' + str(i + 1) + '.pkl'
     else:
