@@ -57,6 +57,7 @@ parser.add_argument('--base_lr', default=0.1, type=float, help='base learning ra
 parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
 parser.add_argument('--input_data_path', type=str, default='./data')
 
+best_acc = 0
 use_cuda = torch.cuda.is_available()
 opt = parser.parse_args()
 torch.manual_seed(opt.seed)
@@ -118,7 +119,7 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        print(inputs.shape)
+        #print(inputs.shape)
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
