@@ -33,5 +33,5 @@ class CSISet(Dataset):
 
 
 class CSILoader(DataLoader):
-    def __init__(self, dataset, opt, sampler=None):
-        super(CSILoader,self).__init__(dataset,batch_size=opt.batch_size, sampler=sampler)
+    def __init__(self, dataset, opt, sampler=None, shuffle=False):
+        super(CSILoader,self).__init__(dataset,batch_size=opt.batch_size, sampler=sampler, shuffle=shuffle)
