@@ -23,7 +23,7 @@ import glob
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
 data_path = 'data/falldata'
 trim = 4500
-downsampling_rate = 1
+downsampling_rate = 2
 window_len = 1000
 data_x_train = []
 data_x_test = []
@@ -40,14 +40,14 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
             sample_trimed = data[sample_num][discard: discard + trim]
             #print(len(sample_trimed))
             for i in range(8):
-                sample_1500 = sample_trimed[i * 500: i * 500 + window_len]
-                sample_500 = sample_1500[::downsampling_rate] # down sampling
+                sample_org = sample_trimed[i * 500: i * 500 + window_len]
+                sample_ds = sample_org[::downsampling_rate] # down sampling
                 #print(len(sample_500))
                 if sample_num < 64:
-                    data_x_train.append(sample_500)
+                    data_x_train.append(sample_ds)
                     data_y_train.append(label_y)
                 else:
-                    data_x_test.append(sample_500)
+                    data_x_test.append(sample_ds)
                     data_y_test.append(label_y)
 
 data_x_train = np.asarray(data_x_train)
