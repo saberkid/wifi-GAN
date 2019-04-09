@@ -23,7 +23,7 @@ import glob
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
 data_path = 'data/falldata'
 trim = 4500
-downsampling_rate = 2
+downsampling_rate = 5
 window_len = 1000
 data_x_train = []
 data_x_test = []
