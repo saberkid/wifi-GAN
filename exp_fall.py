@@ -65,7 +65,7 @@ parser.add_argument('--sess', default='mixup_default', type=str, help='session i
 parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
-parser.add_argument('--base_lr', default=0.1, type=float, help='base learning rate')
+parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
 parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
 parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
 parser.add_argument('--input_data_path', type=str, default='./data')
