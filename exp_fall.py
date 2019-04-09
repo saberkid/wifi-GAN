@@ -31,19 +31,19 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
-        for i in range(len(data)):
-            if len(data[i]) < 4500:
+        for sample_num in range(len(data)):
+            if len(data[sample_num]) < 4500:
                 continue
-            discard = (len(data[i]) - trim) // 2
-            sample_trimed = data[i][discard: discard + trim]
+            discard = (len(data[sample_num]) - trim) // 2
+            sample_trimed = data[sample_num][discard: discard + trim]
             #print(len(sample_trimed))
             for i in range(7):
                 sample_1500 = sample_trimed[i * 500: i * 500 + 1500]
                 sample_500 = sample_1500[::3] # down sampling
                 #print(len(sample_500))
-                if i < 64:
+                if sample_num < 64:
                     data_x_train.append(sample_500)
-                    data_y_train.append(sample_500)
+                    data_y_train.append(label_y)
                 else:
                     data_x_test.append(sample_500)
                     data_y_test.append(label_y)
