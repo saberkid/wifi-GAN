@@ -23,29 +23,38 @@ import glob
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
 data_path = 'data/falldata'
 trim = 4500
-data_x = []
-data_y = []
+data_x_train = []
+data_x_test = []
+data_y_train = []
+data_y_test = []
 for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
-        for sample in data:
-            if len(sample) < 4500:
+        for sample_num in range(len(data)):
+            if len(data[sample_num]) < 4500:
                 continue
-            discard = (len(sample) - trim) // 2
-            sample_trimed = sample[discard: discard + trim]
+            discard = (len(data[sample_num]) - trim) // 2
+            sample_trimed = data[sample_num][discard: discard + trim]
             #print(len(sample_trimed))
             for i in range(7):
                 sample_1500 = sample_trimed[i * 500: i * 500 + 1500]
                 sample_500 = sample_1500[::3] # down sampling
                 #print(len(sample_500))
-                data_x.append(sample_500)
-                data_y.append(label_y)
+                if sample_num < 64:
+                    data_x_train.append(sample_500)
+                    data_y_train.append(label_y)
+                else:
+                    data_x_test.append(sample_500)
+                    data_y_test.append(label_y)
 
-data_x = np.asarray(data_x)
-data_x = data_x.swapaxes(2, 3)
+data_x_train = np.asarray(data_x_train)
+data_x_test = np.asarray(data_x_test)
+data_x_train = data_x_train.swapaxes(2, 3)
+data_x_test = data_x_test.swapaxes(2, 3)
 #data_x = data_x.reshape(-1, 100, 150, 3)
-data_y = np.asarray(data_y)
+data_y_train = np.asarray(data_y_train)
+data_y_test = np.asarray(data_y_test)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -65,21 +74,21 @@ torch.manual_seed(opt.seed)
 
 shuffle = True
 # Creating data indices for training and validation splits:
-data = dataset.CSISet(data_x, data_y)
-dataset_size = len(data)
-indices = list(range(dataset_size))
-split = 0.8
-split = int(np.floor(split * dataset_size))
-print(split)
-if shuffle:
-    np.random.seed(opt.seed)
-    np.random.shuffle(indices)
+data_train = dataset.CSISet(data_x_train, data_y_train)
+data_test = dataset.CSISet(data_x_test, data_y_test)
+# dataset_size = len(data)
+# indices = list(range(dataset_size))
+# split = 0.8
+# split = int(np.floor(split * dataset_size))
+# print(split)
+# if shuffle:
+#     np.random.seed(opt.seed)
+#     np.random.shuffle(indices)
 #train_indices, val_indices = indices[split:], indices[:split]
-train_indices, val_indices = indices[:split], indices[split:]
-train_sampler = SubsetRandomSampler(train_indices)
-valid_sampler = SubsetRandomSampler(val_indices)
-trainloader = dataset.CSILoader(data, opt,sampler=train_sampler)
-testloader = dataset.CSILoader(data, opt,sampler=valid_sampler)
+# train_indices, val_indices = indices[:split], indices[split:]
+
+trainloader = dataset.CSILoader(data_train, opt, shuffle=True)
+testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 
 print('==> Building model..')
