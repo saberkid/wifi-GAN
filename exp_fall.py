@@ -23,8 +23,9 @@ import glob
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
 data_path = 'data/falldata'
 trim = 4500
-downsampling_rate = 5
+downsampling_rate = 1
 window_len = 1000
+train_size = 48
 data_x_train = []
 data_x_test = []
 data_y_train = []
@@ -43,10 +44,10 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
                 sample_org = sample_trimed[i * 500: i * 500 + window_len]
                 sample_ds = sample_org[::downsampling_rate] # down sampling
                 #print(len(sample_500))
-                if sample_num < 64:
+                if sample_num < train_size:
                     data_x_train.append(sample_ds)
                     data_y_train.append(label_y)
-                else:
+                elif sample_num>=64:
                     data_x_test.append(sample_ds)
                     data_y_test.append(label_y)
 
