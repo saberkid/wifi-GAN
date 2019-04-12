@@ -21,11 +21,13 @@ from torch.autograd import Variable
 import glob
 
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
+label_count_dict_tr = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
+label_count_dict_va = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
 data_path = 'data/falldata'
-trim = 4500
+trim = 4000
 downsampling_rate = 1
 window_len = 1000
-train_size = 16
+train_size = 64
 data_x_train = []
 data_x_test = []
 data_y_train = []
@@ -35,22 +37,27 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
         label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
         for sample_num in range(len(data)):
-            if len(data[sample_num]) < 4500:
+            if len(data[sample_num]) < trim:
                 continue
             discard = (len(data[sample_num]) - trim) // 2
             sample_trimed = data[sample_num][discard: discard + trim]
             #print(len(sample_trimed))
-            for i in range(8):
+            for i in range(7):
                 sample_org = sample_trimed[i * 500: i * 500 + window_len]
                 sample_ds = sample_org[::downsampling_rate] # down sampling
                 #print(len(sample_500))
+
                 if sample_num < train_size:
+                    label_count_dict_tr[label_y] += 1
                     data_x_train.append(sample_ds)
                     data_y_train.append(label_y)
                 elif sample_num>=64:
+                    label_count_dict_va[label_y] += 1
                     data_x_test.append(sample_ds)
                     data_y_test.append(label_y)
 
+print(label_count_dict_tr)
+print(label_count_dict_va)
 data_x_train = np.asarray(data_x_train)
 data_x_test = np.asarray(data_x_test)
 data_x_train = data_x_train.swapaxes(2, 3)
