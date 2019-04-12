@@ -37,16 +37,18 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
         label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
         for sample_num in range(len(data)):
-            if len(data[sample_num]) < trim:
-                continue
-            discard = (len(data[sample_num]) - trim) // 2
-            sample_trimed = data[sample_num][discard: discard + trim]
+            # if len(data[sample_num]) < trim:
+            #     continue
+            discard = 500 / 2
+            sample = data[sample_num]
+            sample_trimed = sample[discard: len(sample) - discard]
             #print(len(sample_trimed))
-            for i in range(7):
+            i = 0
+            while i * 500 + window_len < len(sample_trimed):
                 sample_org = sample_trimed[i * 500: i * 500 + window_len]
                 sample_ds = sample_org[::downsampling_rate] # down sampling
                 #print(len(sample_500))
-
+                i += 1
                 if sample_num < train_size:
                     label_count_dict_tr[label_y] += 1
                     data_x_train.append(sample_ds)
