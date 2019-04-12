@@ -39,7 +39,7 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
         for sample_num in range(len(data)):
             # if len(data[sample_num]) < trim:
             #     continue
-            discard = 500 / 2
+            discard = 250
             sample = data[sample_num]
             sample_trimed = sample[discard: len(sample) - discard]
             #print(len(sample_trimed))
