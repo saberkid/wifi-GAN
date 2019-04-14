@@ -15,7 +15,7 @@ import csv
 import pickle
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from networks import vgg
+from networks import vgg, LeNet
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
@@ -25,7 +25,7 @@ label_count_dict_tr = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
 label_count_dict_va = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
 data_path = 'data/falldata'
 trim = 4000
-downsampling_rate = 1
+downsampling_rate = 5
 window_len = 1000
 train_size = 64
 data_x_train = []
@@ -107,7 +107,7 @@ print('==> Building model..')
 # net = VGG('VGG19')
 net = vgg.VGG('VGG11')
 # net = ResNet18()
-# net = GoogLeNet()
+#net = LeNet.LeNet()
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
 # net = MobileNet()
