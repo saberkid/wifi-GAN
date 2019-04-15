@@ -94,10 +94,9 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 
 print('==> Building model..')
-# net = VGG('VGG19')
-#net = vgg.VGG('VGG11')
+net = vgg.VGG('VGG11')
 # net = ResNet18()
-net = LeNet.LeNet(in_channel=3, linear_in=9216)
+#net = LeNet.LeNet(in_channel=3, linear_in=9216)
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
 # net = MobileNet()
