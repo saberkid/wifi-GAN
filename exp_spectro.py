@@ -36,19 +36,22 @@ for dir in os.listdir(data_path):
     for file in os.listdir(data_path + '/' + dir):
         data_file = data_path + '/' + dir + '/' + file
         img = cv2.imread(data_file)
-        print(img.shape)
+        #print(img.shape)
         if sample_i < class_total * train_val_split:
             data_x_train.append(img)
             data_y_train.append(label_y)
         else:
             data_x_test.append(img)
             data_y_test.append(label_y)
+        sample_i += 1
 
 
 
 
 data_x_train = np.asarray(data_x_train)
 data_x_test = np.asarray(data_x_test)
+print(data_x_train.shape)
+print(data_x_test.shape)
 # data_x_train = data_x_train.swapaxes(2, 3)
 # data_x_test = data_x_test.swapaxes(2, 3)
 #data_x = data_x.reshape(-1, 100, 150, 3)
