@@ -13,11 +13,9 @@ import os
 import argparse
 import csv
 import pickle
-from torch.utils.data.sampler import SubsetRandomSampler
 
 from networks import vgg
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
-from utils.emd import emd_csi
 from torch.autograd import Variable
 import glob
 import re
