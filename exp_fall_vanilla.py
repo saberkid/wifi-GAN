@@ -97,7 +97,7 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-net = vgg.VGG('VGG11', in_channels=24, num_classes=9)
+net = vgg.VGG('VGG11')
 # net = ResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
