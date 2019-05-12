@@ -17,48 +17,37 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 from networks import vgg
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
+from utils.emd import emd_csi
 from torch.autograd import Variable
 import glob
+import re
+data_path = 'data/counting'
+data_x_train = None
+data_x_test = None
+data_y_train = None
+data_y_test = None
 
-label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
-data_path = 'data/falldata'
-trim = 4500
-downsampling_rate = 1
-window_len = 1000
-train_size = 16
-data_x_train = []
-data_x_test = []
-data_y_train = []
-data_y_test = []
+
+def merge_ndarray(arr1, arr2):
+    if not arr1:
+        return arr2
+    else:
+        return np.concatenate((arr1, arr2), axis=0 )
+
 
 for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
-        label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
-        for sample_num in range(len(data)):
-            if len(data[sample_num]) < 4500:
-                continue
-            discard = (len(data[sample_num]) - trim) // 2
-            sample_trimed = data[sample_num][discard: discard + trim]
-            #print(len(sample_trimed))
-            for i in range(8):
-                sample_org = sample_trimed[i * 500: i * 500 + window_len]
-                sample_ds = sample_org[::downsampling_rate] # down sampling
-                #print(len(sample_500))
-                if sample_num < train_size:
-                    data_x_train.append(sample_ds)
-                    data_y_train.append(label_y)
-                elif sample_num>=64:
-                    data_x_test.append(sample_ds)
-                    data_y_test.append(label_y)
+        rd = int(re.findall(r'\d+')[0])
 
-data_x_train = np.asarray(data_x_train)
-data_x_test = np.asarray(data_x_test)
-data_x_train = data_x_train.swapaxes(2, 3)
-data_x_test = data_x_test.swapaxes(2, 3)
-#data_x = data_x.reshape(-1, 100, 150, 3)
-data_y_train = np.asarray(data_y_train)
-data_y_test = np.asarray(data_y_test)
+        if 11 >= rd >=3:
+            data_x_train = merge_ndarray(data_x_train, data['x'])
+            data_y_train = merge_ndarray(data_y_train, data['y'])
+        else:
+            data_x_test = merge_ndarray(data_x_test, data['x'])
+            data_y_test = merge_ndarray(data_y_test, data['y'])
+
+
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -69,27 +58,16 @@ parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (def
 parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
 parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
 parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
-#parser.add_argument('--input_data_path', type=str, default='./data')
+parser.add_argument('--input_data_path', type=str, default='./data')
 
 best_acc = 0
 use_cuda = torch.cuda.is_available()
 opt = parser.parse_args()
 torch.manual_seed(opt.seed)
 
-shuffle = True
 # Creating data indices for training and validation splits:
 data_train = dataset.CSISet(data_x_train, data_y_train)
 data_test = dataset.CSISet(data_x_test, data_y_test)
-# dataset_size = len(data)
-# indices = list(range(dataset_size))
-# split = 0.8
-# split = int(np.floor(split * dataset_size))
-# print(split)
-# if shuffle:
-#     np.random.seed(opt.seed)
-#     np.random.shuffle(indices)
-#train_indices, val_indices = indices[split:], indices[:split]
-# train_indices, val_indices = indices[:split], indices[split:]
 
 trainloader = dataset.CSILoader(data_train, opt, shuffle=True)
 testloader = dataset.CSILoader(data_test, opt, shuffle=True)
@@ -97,7 +75,7 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-net = vgg.VGG('VGG11', in_channels=24, num_classes=9)
+net = vgg.VGG('VGG11')
 # net = ResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
@@ -152,7 +130,6 @@ def train(epoch):
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
     return train_loss / batch_idx, 100. * correct / total
-
 
 def test(epoch):
     global best_acc
@@ -224,3 +201,5 @@ if __name__ == '__main__':
         #     logwriter = csv.writer(logfile, delimiter=',')
         #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
     print("best test acc:{}".format(best_acc))
+
+
