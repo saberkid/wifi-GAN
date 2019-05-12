@@ -36,7 +36,7 @@ def merge_ndarray(arr1, arr2):
 for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
-        rd = int(re.findall(r'\d+')[0])
+        rd = int(re.findall(r'\d+', data_file)[-1])
 
         if 11 >= rd >=3:
             data_x_train = merge_ndarray(data_x_train, data['x'])
