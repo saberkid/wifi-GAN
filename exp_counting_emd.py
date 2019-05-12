@@ -20,14 +20,14 @@ from torch.autograd import Variable
 import glob
 import re
 data_path = 'data/counting'
-data_x_train = None
-data_x_test = None
-data_y_train = None
-data_y_test = None
+data_x_train = []
+data_x_test = []
+data_y_train = []
+data_y_test = []
 
 
 def merge_ndarray(arr1, arr2):
-    if not arr1:
+    if not len(arr1):
         return arr2
     else:
         return np.concatenate((arr1, arr2), axis=0 )
