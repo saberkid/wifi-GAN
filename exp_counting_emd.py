@@ -150,7 +150,7 @@ def test(epoch):
         correct += predicted.eq(targets.data).cpu().sum()
 
         pred_all = merge_ndarray(pred_all, predicted.cpu())
-        target_all = merge_ndarray(target_all, targets.data)
+        target_all = merge_ndarray(target_all, targets.data.cpu())
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
