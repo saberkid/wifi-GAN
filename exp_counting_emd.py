@@ -13,7 +13,7 @@ import os
 import argparse
 import csv
 import pickle
-
+from sklearn.metrics import confusion_matrix
 from networks import vgg
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
@@ -135,6 +135,8 @@ def test(epoch):
     test_loss = 0
     correct = 0
     total = 0
+    pred_all = []
+    target_all = []
     for batch_idx, (inputs, targets) in enumerate(testloader):
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
@@ -146,6 +148,8 @@ def test(epoch):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
+        pred_all = merge_ndarray(pred_all, predicted)
+        target_all = merge_ndarray(target_all, targets)
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -155,6 +159,9 @@ def test(epoch):
     if acc > best_acc:
         best_acc = acc
         checkpoint(acc, epoch)
+
+    #Confusion Mat
+    print(confusion_matrix(pred_all, target_all))
     return (test_loss/batch_idx, 100.*correct/total)
 
 def checkpoint(acc, epoch):

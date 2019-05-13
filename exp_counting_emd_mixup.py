@@ -13,7 +13,7 @@ import os
 import argparse
 import csv
 import pickle
-
+from sklearn.metrics import confusion_matrix
 from networks import vgg
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
