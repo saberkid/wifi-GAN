@@ -148,8 +148,9 @@ def test(epoch):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
-        pred_all = merge_ndarray(pred_all, predicted)
-        target_all = merge_ndarray(target_all, targets)
+
+        pred_all = merge_ndarray(pred_all, predicted.cpu())
+        target_all = merge_ndarray(target_all, targets.data)
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
