@@ -133,6 +133,38 @@ def process_count(filepath, ipca):
         with open("../data/counting_{0}.pkl".format(dir), 'wb+') as f:
             pickle.dump(data, f)
 
+def process_count_raw(filepath):
+    for dir in os.listdir(filepath):
+        if not os.path.isdir(filepath + '/' + dir):
+            continue
+        csiset = []
+        target = []
+        for filename in glob.glob(filepath + '/' + dir + '/*.csi'):
+            #filename = filepath + '/' + dir + '/' + file
+            label = filename.split('_')[-1][:-4]
+            if label in class_dict_counting:
+                print('processing' + filename)
+                csi = get_csi(filename)
+
+                csi = csi.swapaxes(0, 1)
+
+                # Cut into windows
+                csi_windows = cut_into_windows(csi)
+                label_num = class_dict_counting[label]
+                labels = [label_num] * len(csi_windows)
+                csiset.extend(csi_windows)
+                target.extend(labels)
+
+        csiset = np.array(csiset)
+        target = np.array(target)
+        data = {'x': csiset, 'y': target}
+        csi_shape = csiset.shape
+        print('***********csi processed shape*********', csi_shape)
+        print('************target shape*************', target.shape)
+        with open("../data/counting_{0}.raw".format(dir), 'wb+') as f:
+            pickle.dump(data, f)
+
+
 def save_sub_mean(filepath):
     for dir in os.listdir(filepath):
         if not os.path.isdir(filepath + '/' + dir):
@@ -182,8 +214,9 @@ def cut_into_windows(csi,trim=100):
         i += 1
     return csi_windows
 
-ipca = get_pca_model(filepath = '../data/counting')
+#ipca = get_pca_model(filepath = '../data/counting')
 #ipca = get_pca_model(filepath = '../data/32-')
-process_count(filepath = '../data/counting', ipca=ipca)
+#process_count(filepath = '../data/counting', ipca=ipca)
+process_count_raw(filepath = '../data/counting')
 # save_sub_mean('../data/counting')
 
