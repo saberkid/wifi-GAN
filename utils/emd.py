@@ -11,9 +11,9 @@ def emd_csi(csi, imfn=6):
     IMF = emd(csi)
 
     N = IMF.shape[0]+1
-    csi_emd = np.zeros((csi.shape[0], 6))
+    csi_emd = np.zeros((csi.shape[0], imfn))
 
     for n, imf in enumerate(IMF):
-        if 1 <= n <= imfn:
-            csi_emd[:, n-1] = imf
+        if 0 <= n < imfn:
+            csi_emd[:, n] = imf
     return csi_emd

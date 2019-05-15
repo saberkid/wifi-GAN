@@ -38,7 +38,7 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
         data = pickle.load(f)
         rd = int(re.findall(r'\d+', data_file)[-1])
 
-        if 11 >= rd >=3:
+        if 13 >= rd >= 7:
             data_x_train = merge_ndarray(data_x_train, data['x'])
             data_y_train = merge_ndarray(data_y_train, data['y'])
         else:
@@ -73,7 +73,7 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-net = vgg.VGG('VGG11', in_channels=24, num_classes=9 ,linear_in=1536)
+net = vgg.VGG('VGG11', in_channels=32, num_classes=4 ,linear_in=1536)
 # net = ResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
