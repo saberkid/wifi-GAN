@@ -68,6 +68,7 @@ def get_pca_model(filepath):
     if os.path.exists(joblib_file):
         return joblib.load(joblib_file)
     ipca = IncrementalPCA(n_components=SUBCARRIER_S)
+    #ipca = IncrementalPCA()
     for dir in os.listdir(filepath):
         csiset = []
         target = []
@@ -76,11 +77,13 @@ def get_pca_model(filepath):
                 print('processing' + filename)
                 csi = get_csi(filename)
                 # #filtered out 16
-                csi = csi[:, :, 0].swapaxes(0, 1) # (t * subcarriers * )
+                csi = csi[:, :, 0: STREAM_S].swapaxes(0, 1) # (t * subcarriers * )
+                csi = csi.reshape(csi.shape[0], -1)
                 print(csi.shape)
                 ipca.partial_fit(csi)
         except NotADirectoryError:
             pass
+    ipca.explained_variance_ratio_()
     joblib_file = "CSI_pca_model"
     joblib.dump(ipca, filepath + '/' +joblib_file)
     return ipca
@@ -216,7 +219,7 @@ def cut_into_windows(csi,trim=100):
 
 ipca = get_pca_model(filepath = 'data/counting')
 #ipca = get_pca_model(filepath = '../data/32-')
-process_count(filepath = 'data/counting', ipca=ipca)
+#process_count(filepath = 'data/counting', ipca=ipca)
 #process_count_raw(filepath = 'data/counting')
 # save_sub_mean('../data/counting')
 
