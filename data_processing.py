@@ -83,7 +83,7 @@ def get_pca_model(filepath):
                 ipca.partial_fit(csi)
         except NotADirectoryError:
             pass
-    ipca.explained_variance_ratio_()
+    print(ipca.explained_variance_ratio_)
     joblib_file = "CSI_pca_model"
     joblib.dump(ipca, filepath + '/' +joblib_file)
     return ipca

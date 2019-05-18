@@ -15,6 +15,7 @@ import csv
 import pickle
 from sklearn.metrics import confusion_matrix
 from networks import vgg
+from networks.resnet import ResNet18
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
@@ -73,8 +74,8 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-net = vgg.VGG('VGG11', in_channels=32, num_classes=4 ,linear_in=1536)
-# net = ResNet18()
+#net = vgg.VGG('VGG11', in_channels=32, num_classes=4 ,linear_in=1536)
+net = ResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
