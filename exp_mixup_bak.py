@@ -15,7 +15,7 @@ import csv
 import pickle
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from networks import vgg, resnet
+from networks import vgg, resnet1D
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob

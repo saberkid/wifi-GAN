@@ -4,12 +4,13 @@ import torch
 
 
 class CSISet(Dataset):
-    def __init__(self, csifile, targetfile):
+    def __init__(self, csifile, targetfile, imf_s = 6):
         self._csi = csifile
         self._target = targetfile
         transform = []
         #transform.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
         self.transform = T.Compose(transform)
+        self.imf_s = imf_s
 
 
     def __getitem__(self, index):
@@ -21,7 +22,9 @@ class CSISet(Dataset):
         return len(self._csi)
 
     def preprocess(self, data):
-        data = data.swapaxes(0, 2)
+        data = data[:, :, 0 : self.imf_s]
+        data = data.reshape(data.shape[0], -1)
+        data = data.swapaxes(0, 1)
         data = torch.from_numpy(data)
         # min_v = torch.min(data)
         # range_v = torch.max(data) - min_v

@@ -15,16 +15,33 @@ import csv
 import pickle
 from sklearn.metrics import confusion_matrix
 from networks import vgg
-from networks.resnet import ResNet18
+from networks import resnet1D
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
 import re
-data_path = 'data/counting'
+
 data_x_train = []
 data_x_test = []
 data_y_train = []
 data_y_test = []
+IMF_S = 2
+
+parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+parser.add_argument('--sess', default='mixup_default', type=str, help='session id')
+parser.add_argument('--seed', default=0, type=int, help='rng seed')
+parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
+parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
+parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
+parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
+parser.add_argument('--input_data_path', type=str, default='data/counting')
+best_acc = 0
+use_cuda = torch.cuda.is_available()
+opt = parser.parse_args()
+torch.manual_seed(opt.seed)
+data_path = opt.input_data_path
 
 
 def merge_ndarray(arr1, arr2):
@@ -39,34 +56,25 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
         data = pickle.load(f)
         rd = int(re.findall(r'\d+', data_file)[-1])
 
-        if 13 >= rd >= 7:
-            data_x_train = merge_ndarray(data_x_train, data['x'])
-            data_y_train = merge_ndarray(data_y_train, data['y'])
-        else:
+        if rd in [12, 13, 14]:
             data_x_test = merge_ndarray(data_x_test, data['x'])
             data_y_test = merge_ndarray(data_y_test, data['y'])
+        else:
+            data_x_train = merge_ndarray(data_x_train, data['x'])
+            data_y_train = merge_ndarray(data_y_train, data['y'])
 
-
-
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-parser.add_argument('--sess', default='mixup_default', type=str, help='session id')
-parser.add_argument('--seed', default=0, type=int, help='rng seed')
-parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
-parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
-parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
-parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
-parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
-parser.add_argument('--input_data_path', type=str, default='./data')
-
-best_acc = 0
-use_cuda = torch.cuda.is_available()
-opt = parser.parse_args()
-torch.manual_seed(opt.seed)
+unique_train, counts_train = np.unique(data_y_train, return_counts=True)
+label_counts_train = dict(zip(unique_train, counts_train))
+unique_test, counts_test = np.unique(data_y_test, return_counts=True)
+label_counts_test = dict(zip(unique_test, counts_test))
+print('-------------Training Set Stats---------------')
+print(label_counts_train)
+print('------------Testing Set Stats------------')
+print(label_counts_test)
 
 # Creating data indices for training and validation splits:
-data_train = dataset.CSISet(data_x_train, data_y_train)
-data_test = dataset.CSISet(data_x_test, data_y_test)
+data_train = dataset.CSISet(data_x_train, data_y_train, imf_s=IMF_S)
+data_test = dataset.CSISet(data_x_test, data_y_test, imf_s=IMF_S)
 
 trainloader = dataset.CSILoader(data_train, opt, shuffle=True)
 testloader = dataset.CSILoader(data_test, opt, shuffle=True)
@@ -74,8 +82,8 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-#net = vgg.VGG('VGG11', in_channels=32, num_classes=4 ,linear_in=1536)
-net = ResNet18()
+#net = vgg.VGG('VGG11', in_channels=64, num_classes=4 ,linear_in=1536)
+net = resnet1D.ResNetCSI(num_classes=4, in_channels=data_x_train.shape[2] * IMF_S)
 # net = GoogLeNet()
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()

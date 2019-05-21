@@ -14,7 +14,7 @@ class_dict_counting  = {'empty':0, 's':0, 'w': 1, 'ss': 0, 'sw':1, 'ww':2, 'ssw'
 SUBCARRIER_S = 8
 STREAM_S = 4
 IMF_S = 8
-WINDOW_OVERLAP = 20
+WINDOW_STRIDE = 20
 WINDOW_SIZE = 100
 #============read CSI data from file======================
 # subcarrier channel, samples point, antena to antena
@@ -67,7 +67,7 @@ def get_pca_model(filepath):
     joblib_file = filepath + '/' + 'CSI_pca_model'
     if os.path.exists(joblib_file):
         return joblib.load(joblib_file)
-    ipca = IncrementalPCA(n_components=SUBCARRIER_S)
+    ipca = IncrementalPCA(n_components=SUBCARRIER_S + 1)
     #ipca = IncrementalPCA()
     for dir in os.listdir(filepath):
         csiset = []
@@ -104,24 +104,27 @@ def process_count(filepath, ipca):
 
                 # filtered out 16 to 4
                 csi = csi[:, :, 0:STREAM_S].swapaxes(0, 1)
-
+                csi = csi.reshape(csi.shape[0], -1)
                 # PCA
                 print('before' + str(csi.shape))
-                csi_pca = np.zeros((csi.shape[0], SUBCARRIER_S, STREAM_S))
-                for stream in range(STREAM_S):
-                    csi_pca[:, :, stream] = ipca.transform(csi[:, :, stream])
+                ipca.n_components = SUBCARRIER_S
+                # Discard the first Principal component
+                csi_pca = ipca.transform(csi)[:, 1:]
                 print('after' + str(csi_pca.shape))
 
-                # EMD
-                csi_emd = np.zeros((csi.shape[0], SUBCARRIER_S, STREAM_S, IMF_S))
-                for subcarrier in range(csi_pca.shape[1]):
-                    for stream in range(csi_pca.shape[2]):
-                        csi_sub_emd = emd_csi(csi_pca[:, subcarrier, stream], IMF_S)
-                        csi_emd[:, subcarrier, stream, :] = csi_sub_emd
-                csi_emd = csi_emd.reshape(csi_emd.shape[0], SUBCARRIER_S, -1)
-
                 # Cut into windows
-                csi_windows = cut_into_windows(csi_emd)
+                csi_windows = cut_into_windows(csi_pca)
+
+                # EMD
+                for i, csi_pca in enumerate(csi_windows):
+                    csi_emd = np.zeros((csi_pca.shape[0], csi_pca.shape[1], IMF_S))
+                    for stream in range(csi_pca.shape[1]):
+                            csi_sub_emd = emd_csi(csi_pca[:, stream], IMF_S)
+                            csi_emd[:, stream, :] = csi_sub_emd
+                    #csi_windows[i] = csi_emd.reshape(csi_emd.shape[0], -1)
+                    csi_windows[i] = csi_emd
+
+
                 label_num = class_dict_counting[label]
                 labels = [label_num] * len(csi_windows)
                 csiset.extend(csi_windows)
@@ -211,15 +214,15 @@ def cut_into_windows(csi,trim=100):
     csi_windows = []
     # sliding window
     i = 0
-    while i * WINDOW_OVERLAP + WINDOW_SIZE <= csi.shape[0]:
-        csi_window = csi[i * WINDOW_OVERLAP:i * WINDOW_OVERLAP + WINDOW_SIZE]
+    while i * WINDOW_STRIDE + WINDOW_SIZE <= csi.shape[0]:
+        csi_window = csi[i * WINDOW_STRIDE:i * WINDOW_STRIDE + WINDOW_SIZE]
         csi_windows.append(csi_window)
         i += 1
     return csi_windows
 
 ipca = get_pca_model(filepath = 'data/counting')
 #ipca = get_pca_model(filepath = '../data/32-')
-#process_count(filepath = 'data/counting', ipca=ipca)
+process_count(filepath = 'data/counting', ipca=ipca)
 #process_count_raw(filepath = 'data/counting')
 # save_sub_mean('../data/counting')
 
