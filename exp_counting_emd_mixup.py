@@ -34,7 +34,7 @@ parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
 parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
-parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
 parser.add_argument('--input_data_path', type=str, default='data/counting')
 best_acc = 0
@@ -51,12 +51,23 @@ def merge_ndarray(arr1, arr2):
         return np.concatenate((arr1, arr2), axis=0 )
 
 
+def get_mean_empty(data):
+    list_empty = []
+    for i in range(len(data['x'])):
+        if data['y'][i] == 0:
+            list_empty.append(data['x'][i])
+    array_empty = np.array(list_empty)
+
+    return np.mean(array_empty, axis=0)
+
+
 for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
         rd = int(re.findall(r'\d+', data_file)[-1])
-
-        if rd in [9, 10, 11]:
+        csi_mean_empty = get_mean_empty(data)
+        data['x'] -= csi_mean_empty
+        if rd in [12, 13, 14]:
             data_x_test = merge_ndarray(data_x_test, data['x'])
             data_y_test = merge_ndarray(data_y_test, data['y'])
         else:

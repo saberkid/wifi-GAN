@@ -15,12 +15,13 @@ from torch.autograd import Variable
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, dropout=0):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv1d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm1d(planes)
         self.conv2 = nn.Conv1d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm1d(planes)
+        self.dropout = nn.Dropout(p=dropout)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -34,6 +35,7 @@ class BasicBlock(nn.Module):
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
+        out = self.dropout(out)
         return out
 
 
@@ -76,7 +78,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.linear = nn.Linear(512*block.expansion*3, num_classes)
+        self.linear = nn.Linear(512 * block.expansion * 6, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -124,5 +126,3 @@ def test():
     with writer:
         writer.add_graph(net, (dummy_input,))
 
-
-test()

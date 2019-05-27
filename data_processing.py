@@ -1,19 +1,20 @@
 import os
 
-from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import IncrementalPCA, PCA
 from utils.emd import emd_csi
 from reader import Parser
 import numpy as np
 import pickle
 import joblib
 import glob
+import matplotlib.pyplot as plt
 
 class_dict_local  = {'empty':0, 'living': 1, 'kitchen':2, 'chianyu':3, 'bathroom':4, 'jen':5}
 class_dict_counting  = {'empty':0, 's':0, 'w': 1, 'ss': 0, 'sw':1, 'ww':2, 'ssw':1, 'sww':2, 'www':3}
 
 SUBCARRIER_S = 8
 STREAM_S = 4
-IMF_S = 8
+IMF_S = 10
 WINDOW_STRIDE = 20
 WINDOW_SIZE = 100
 #============read CSI data from file======================
@@ -220,9 +221,52 @@ def cut_into_windows(csi,trim=100):
         i += 1
     return csi_windows
 
-ipca = get_pca_model(filepath = 'data/counting')
+#ipca = get_pca_model(filepath = 'data/counting')
 #ipca = get_pca_model(filepath = '../data/32-')
-process_count(filepath = 'data/counting', ipca=ipca)
+#process_count(filepath = 'data/counting', ipca=ipca)
 #process_count_raw(filepath = 'data/counting')
 # save_sub_mean('../data/counting')
+
+
+filepath = 'data/falldata'
+joblib_file = filepath + '/' + 'CSI_pca_model'
+
+#ipca = IncrementalPCA(n_components=SUBCARRIER_S + 1)
+ipca = IncrementalPCA(n_components=3)
+for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
+    with open(data_file, 'rb') as f:
+        data = pickle.load(f)
+        csi = data[0]
+        csi = csi.reshape(csi.shape[0], -1)
+        ipca.partial_fit(csi)
+        #print(ipca.explained_variance_ratio_)
+
+# joblib_file = "CSI_pca_model"
+# joblib.dump(ipca, filepath + '/' +joblib_file)
+
+for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
+    with open(data_file, 'rb') as f:
+        label = os.path.splitext(data_file)[0].split('_')[-1]
+        data = pickle.load(f)
+        csi_list  = []
+        for csi in data:
+            csi = csi.reshape(csi.shape[0], -1)
+            csi = ipca.transform(csi)
+            csi_list.append(csi)
+        csi_list = np.array(csi_list)
+
+        dumpname = data_file.replace('pkl', 'pkls')
+        with open(dumpname, 'wb+') as f2:
+            pickle.dump(csi_list, f2)
+
+    # for i in range(3):
+    #     plt.subplot(3, 1, i+1)
+    #     plt.gca().set_title('{} PC{}'.format(label, i+1))
+    #     plt.xlabel('Packet Index')
+    #     plt.ylabel('CSI Amplitude')
+    #     plt.plot(csi[:, i], color='b')
+    #
+    # plt.show()
+
+
 

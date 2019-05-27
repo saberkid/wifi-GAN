@@ -50,11 +50,22 @@ def merge_ndarray(arr1, arr2):
     else:
         return np.concatenate((arr1, arr2), axis=0 )
 
+def get_mean_empty(data):
+    list_empty = []
+    for i in range(len(data['x'])):
+        if data['y'][i] == 0:
+            list_empty.append(data['x'][i])
+    array_empty = np.array(list_empty)
+
+    return np.mean(array_empty, axis=0)
+
 
 for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
         rd = int(re.findall(r'\d+', data_file)[-1])
+        csi_mean_empty = get_mean_empty(data)
+        data['x'] -= csi_mean_empty
 
         if rd in [12, 13, 14]:
             data_x_test = merge_ndarray(data_x_test, data['x'])

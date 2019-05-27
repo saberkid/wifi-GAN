@@ -13,12 +13,20 @@ import os
 import argparse
 import csv
 import pickle
+from sklearn.metrics import confusion_matrix
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from networks import vgg, LeNet
+from networks import vgg, LeNet, resnet1D
 from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
+
+
+def merge_ndarray(arr1, arr2):
+    if not len(arr1):
+        return arr2
+    else:
+        return np.concatenate((arr1, arr2), axis=0 )
 
 label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
 label_count_dict_tr = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
@@ -27,7 +35,7 @@ data_path = 'data/falldata'
 trim = 4000
 downsampling_rate = 5
 window_len = 1000
-train_size = 64
+train_size = 64 # 79 in total
 data_x_train = []
 data_x_test = []
 data_y_train = []
@@ -47,26 +55,28 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
             while i * 500 + window_len < len(sample_trimed):
                 sample_org = sample_trimed[i * 500: i * 500 + window_len]
                 sample_ds = sample_org[::downsampling_rate] # down sampling
+                sample_ds = sample_ds.reshape(sample_ds.shape[0], -1)
                 #print(len(sample_500))
                 i += 1
                 if sample_num < train_size:
                     label_count_dict_tr[label_y] += 1
                     data_x_train.append(sample_ds)
                     data_y_train.append(label_y)
-                elif sample_num>=64:
+                elif sample_num >= 64:
                     label_count_dict_va[label_y] += 1
                     data_x_test.append(sample_ds)
                     data_y_test.append(label_y)
 
 print(label_count_dict_tr)
 print(label_count_dict_va)
-data_x_train = np.asarray(data_x_train)
-data_x_test = np.asarray(data_x_test)
-data_x_train = data_x_train.swapaxes(2, 3)
-data_x_test = data_x_test.swapaxes(2, 3)
+data_x_train = np.array(data_x_train)
+data_x_test = np.array(data_x_test)
+print(data_x_train.shape)
+# data_x_train = data_x_train.swapaxes(2, 3)
+# data_x_test = data_x_test.swapaxes(2, 3)
 #data_x = data_x.reshape(-1, 100, 150, 3)
-data_y_train = np.asarray(data_y_train)
-data_y_test = np.asarray(data_y_test)
+data_y_train = np.array(data_y_train)
+data_y_test = np.array(data_y_test)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
@@ -105,7 +115,8 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 
 print('==> Building model..')
 # net = VGG('VGG19')
-net = vgg.VGG('VGG11')
+# net = vgg.VGG('VGG11')
+net = resnet1D.ResNetCSI(num_classes=7, in_channels=data_x_train.shape[2] )
 # net = ResNet18()
 #net = LeNet.LeNet()
 # net = DenseNet121()
@@ -141,7 +152,7 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        #print(inputs.shape)
+        # print(inputs.shape)
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
@@ -162,8 +173,9 @@ def train(epoch):
         correct += lam * predicted.eq(targets_a.data).cpu().sum() + (1 - lam) * predicted.eq(targets_b.data).cpu().sum()
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    return (train_loss/batch_idx, 100.*correct/total)
+                     % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
+    return (train_loss / batch_idx, 100. * correct / total)
+
 
 def test(epoch):
     global best_acc
@@ -171,6 +183,8 @@ def test(epoch):
     test_loss = 0
     correct = 0
     total = 0
+    pred_all = []
+    target_all = []
     for batch_idx, (inputs, targets) in enumerate(testloader):
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
@@ -183,6 +197,9 @@ def test(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
+        pred_all = merge_ndarray(pred_all, predicted.cpu())
+        target_all = merge_ndarray(target_all, targets.data.cpu())
+
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -191,6 +208,9 @@ def test(epoch):
     if acc > best_acc:
         best_acc = acc
         checkpoint(acc, epoch)
+
+    #Confusion Mat
+    print(confusion_matrix(pred_all, target_all))
     return (test_loss/batch_idx, 100.*correct/total)
 
 def checkpoint(acc, epoch):
@@ -235,3 +255,5 @@ if __name__ == '__main__':
         #     logwriter = csv.writer(logfile, delimiter=',')
         #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
     print("best test acc:{}".format(best_acc))
+
+
