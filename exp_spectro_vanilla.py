@@ -156,6 +156,8 @@ def test(epoch):
     test_loss = 0
     correct = 0
     total = 0
+    pred_all = []
+    target_all = []
     for batch_idx, (inputs, targets) in enumerate(testloader):
         if use_cuda:
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
@@ -168,14 +170,20 @@ def test(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
 
+        pred_all = merge_ndarray(pred_all, predicted.cpu())
+        target_all = merge_ndarray(target_all, targets.data.cpu())
+
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            % (test_loss/(batch_idx+1), 100.* float(correct)/total, correct, total))
 
     # Save checkpoint.
-    acc = 100.*correct/total
+    acc = 100.*float(correct)/total
     if acc > best_acc:
         best_acc = acc
         checkpoint(acc, epoch)
+
+    #Confusion Mat
+    print(confusion_matrix(pred_all, target_all))
     return (test_loss/batch_idx, 100.*correct/total)
 
 def checkpoint(acc, epoch):
@@ -220,3 +228,5 @@ if __name__ == '__main__':
         #     logwriter = csv.writer(logfile, delimiter=',')
         #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
     print("best test acc:{}".format(best_acc))
+
+

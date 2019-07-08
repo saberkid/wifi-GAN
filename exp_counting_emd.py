@@ -25,11 +25,11 @@ data_x_train = []
 data_x_test = []
 data_y_train = []
 data_y_test = []
-IMF_S = 2
+IMF_S = 4
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-parser.add_argument('--sess', default='mixup_default', type=str, help='session id')
+parser.add_argument('--sess', default='cpslab', type=str, help='session id')
 parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
@@ -37,6 +37,9 @@ parser.add_argument('--base_lr', default=0.01, type=float, help='base learning r
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
 parser.add_argument('--input_data_path', type=str, default='data/counting')
+parser.add_argument('--checkpoint_path', type=str, default='checkpoint/ckpt.cpslab_20')
+parser.add_argument('--test_mode', type=bool, default=False)
+parser.add_argument('--mixup', type=bool, default=False)
 best_acc = 0
 use_cuda = torch.cuda.is_available()
 opt = parser.parse_args()
@@ -64,10 +67,11 @@ for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
         rd = int(re.findall(r'\d+', data_file)[-1])
-        csi_mean_empty = get_mean_empty(data)
-        data['x'] -= csi_mean_empty
+        # csi_mean_empty = get_mean_empty(data)
+        # data['x'] -= csi_mean_empty
+        data['x'] = data['x'][:, :, :8, :]
 
-        if rd in [12, 13, 14]:
+        if rd in [3,7,10,13, 16, 19]:
             data_x_test = merge_ndarray(data_x_test, data['x'])
             data_y_test = merge_ndarray(data_y_test, data['y'])
         else:
@@ -78,23 +82,26 @@ unique_train, counts_train = np.unique(data_y_train, return_counts=True)
 label_counts_train = dict(zip(unique_train, counts_train))
 unique_test, counts_test = np.unique(data_y_test, return_counts=True)
 label_counts_test = dict(zip(unique_test, counts_test))
+print(data_x_test.shape)
 print('-------------Training Set Stats---------------')
 print(label_counts_train)
 print('------------Testing Set Stats------------')
 print(label_counts_test)
 
 # Creating data indices for training and validation splits:
-data_train = dataset.CSISet(data_x_train, data_y_train, imf_s=IMF_S)
-data_test = dataset.CSISet(data_x_test, data_y_test, imf_s=IMF_S)
-
-trainloader = dataset.CSILoader(data_train, opt, shuffle=True)
+if not opt.test_mode:
+    data_train = dataset.CSISet(data_x_train, data_y_train, imf_s=IMF_S, imf_selection=True)
+    trainloader = dataset.CSILoader(data_train, opt, shuffle=True)
+data_test = dataset.CSISet(data_x_test, data_y_test, imf_s=IMF_S, imf_selection=True)
 testloader = dataset.CSILoader(data_test, opt, shuffle=True)
+
+
 
 
 print('==> Building model..')
 # net = VGG('VGG19')
 #net = vgg.VGG('VGG11', in_channels=64, num_classes=4 ,linear_in=1536)
-net = resnet1D.ResNetCSI(num_classes=4, in_channels=data_x_train.shape[2] * IMF_S)
+net = resnet1D.ResNetCSI(num_classes=4, in_channels=data_x_test.shape[2] * IMF_S)
 # net = GoogLeNet()
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
@@ -133,10 +140,20 @@ def train(epoch):
             inputs, targets = inputs.float().cuda(), targets.long().cuda()
 
         optimizer.zero_grad()
-        inputs, targets = Variable(inputs), Variable(targets)
-        outputs = net(inputs)
 
-        loss = criterion(outputs, targets)
+        if opt.mixup:
+            inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, opt.alpha, use_cuda)
+            inputs, targets_a, targets_b = Variable(inputs), Variable(targets_a), Variable(targets_b)
+            outputs = net(inputs)
+
+            loss_func = mixup_criterion(targets_a, targets_b, lam)
+            loss = loss_func(criterion, outputs)
+        else:
+            inputs, targets = Variable(inputs), Variable(targets)
+            outputs = net(inputs)
+
+            loss = criterion(outputs, targets)
+
         loss.backward()
         optimizer.step()
 
@@ -147,7 +164,7 @@ def train(epoch):
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-    return train_loss / batch_idx, 100. * correct / total
+    return (train_loss / batch_idx, 100. * correct / total)
 
 def test(epoch):
     global best_acc
@@ -173,13 +190,13 @@ def test(epoch):
         target_all = merge_ndarray(target_all, targets.data.cpu())
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+                     % (test_loss / (batch_idx + 1), 100. * float(correct) / total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
         best_acc = acc
-        checkpoint(acc, epoch)
+    checkpoint(acc, epoch)
 
     #Confusion Mat
     print(confusion_matrix(pred_all, target_all))
@@ -187,17 +204,11 @@ def test(epoch):
 
 def checkpoint(acc, epoch):
     # Save checkpoint.
-    if epoch+1 % 10 == 0:
+    if (epoch+1) % 10 == 0:
         print('Saving..')
-        state = {
-            'net': net,
-            'acc': acc,
-            'epoch': epoch,
-            'rng_state': torch.get_rng_state()
-        }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.t7.' + opt.sess + '_' + str(opt.seed))
+        torch.save(net, './checkpoint/ckpt.' + opt.sess + '_' + str(epoch + 1))
 
 def adjust_learning_rate(optimizer, epoch):
     """decrease the learning rate at 100 and 150 epoch"""
@@ -219,13 +230,17 @@ def adjust_learning_rate(optimizer, epoch):
 #
 
 if __name__ == '__main__':
-    for epoch in range(opt.epoch):
-        adjust_learning_rate(optimizer, epoch)
-        train_loss, train_acc = train(epoch)
-        test_loss, test_acc = test(epoch)
-        # with open(logname, 'a') as logfile:
-        #     logwriter = csv.writer(logfile, delimiter=',')
-        #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
-    print("best test acc:{}".format(best_acc))
+    if opt.test_mode:
+        net = torch.load(opt.checkpoint_path)
+        test(0)
+    else:
+        for epoch in range(opt.epoch):
+            adjust_learning_rate(optimizer, epoch)
+            train_loss, train_acc = train(epoch)
+            test_loss, test_acc = test(epoch)
+            # with open(logname, 'a') as logfile:
+            #     logwriter = csv.writer(logfile, delimiter=',')
+            #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
+        print("best test acc:{}".format(best_acc))
 
 

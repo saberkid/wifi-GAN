@@ -2,12 +2,12 @@ from __future__ import division, print_function
 
 import numpy  as np
 import pylab as plt
-from PyEMD import EMD
+from PyEMD import EMD, CEEMDAN
 
 def emd_csi(csi, imfn=10):
     # Execute EMD on signal
     emd = EMD()
-    #emd.FIXE = 10
+    emd.FIXE = 10
     IMF = emd(csi)
 
     csi_emd = np.zeros((csi.shape[0], imfn))

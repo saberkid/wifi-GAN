@@ -21,6 +21,8 @@ from utils.miscellaneous import progress_bar, mixup_data, mixup_criterion
 from torch.autograd import Variable
 import glob
 
+from utils.painter import plot_confusion_matrix
+
 
 def merge_ndarray(arr1, arr2):
     if not len(arr1):
@@ -28,32 +30,35 @@ def merge_ndarray(arr1, arr2):
     else:
         return np.concatenate((arr1, arr2), axis=0 )
 
-label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
+#label_dict = {'bed': 0, 'fall': 1, 'pickup' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5, 'walk' : 6}
+label_dict = {'bed': 0, 'fall': 1, 'walk' : 2, 'run' : 3, 'sitdown' : 4, 'standup' : 5}
 label_count_dict_tr = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
 label_count_dict_va = {0: 0, 1: 0, 2:  0, 3: 0, 4: 0, 5: 0, 6: 0}
 data_path = 'data/falldata'
-trim = 4000
-downsampling_rate = 5
-window_len = 1000
-train_size = 64 # 79 in total
+
+downsampling_rate = 10
+window_len = 2000
+stride = 500
+discard = 0
+train_size = 48 # 79 in total
 data_x_train = []
 data_x_test = []
 data_y_train = []
 data_y_test = []
-for data_file in glob.glob(r'{}/*.pkls'.format(data_path)):
+for data_file in glob.glob(r'{}/*.pkl'.format(data_path)):
     with open(data_file, 'rb') as f:
         label_y = label_dict[os.path.splitext(data_file)[0].split('_')[-1]]
         data = pickle.load(f)
         for sample_num in range(len(data)):
             # if len(data[sample_num]) < trim:
             #     continue
-            discard = 250
+
             sample = data[sample_num]
             sample_trimed = sample[discard: len(sample) - discard]
             #print(len(sample_trimed))
             i = 0
-            while i * 500 + window_len < len(sample_trimed):
-                sample_org = sample_trimed[i * 500: i * 500 + window_len]
+            while i * stride + window_len < len(sample_trimed):
+                sample_org = sample_trimed[i * stride: i * stride + window_len]
                 sample_ds = sample_org[::downsampling_rate] # down sampling
                 sample_ds = sample_ds.reshape(sample_ds.shape[0], -1)
                 #print(len(sample_500))
@@ -85,9 +90,10 @@ parser.add_argument('--seed', default=0, type=int, help='rng seed')
 parser.add_argument('--alpha', default=1., type=float, help='interpolation strength (uniform=1., ERM=0.)')
 parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default=1e-4)')
 parser.add_argument('--base_lr', default=0.01, type=float, help='base learning rate')
-parser.add_argument("--batch_size", type=int, default=32, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
 parser.add_argument("--epoch", type=int, default=200, help="number of epochs")
 parser.add_argument('--input_data_path', type=str, default='./data')
+parser.add_argument('--train_method', type=str, default='erm')
 
 best_acc = 0
 use_cuda = torch.cuda.is_available()
@@ -116,9 +122,9 @@ testloader = dataset.CSILoader(data_test, opt, shuffle=True)
 print('==> Building model..')
 # net = VGG('VGG19')
 # net = vgg.VGG('VGG11')
-net = resnet1D.ResNetCSI(num_classes=7, in_channels=data_x_train.shape[2] )
+net = resnet1D.ResNetCSI(num_classes=len(label_dict), in_channels=data_x_train.shape[2] )
 # net = ResNet18()
-#net = LeNet.LeNet()
+#net = LeNet.LeNet(num_classes=len(label_dict), in_channels=data_x_train.shape[2], linear_in=1600)
 # net = DenseNet121()
 # net = ResNeXt29_2x64d()
 # net = MobileNet()
@@ -175,6 +181,8 @@ def train(epoch):
 
 def test(epoch):
     global best_acc
+    global best_prediction
+    global best_target
     net.eval()
     test_loss = 0
     correct = 0
@@ -197,13 +205,14 @@ def test(epoch):
         target_all = merge_ndarray(target_all, targets.data.cpu())
 
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            % (test_loss/(batch_idx+1), 100.* float(correct)/total, correct, total))
 
     # Save checkpoint.
-    acc = 100.*correct/total
+    acc = 100.*float(correct)/total
     if acc > best_acc:
         best_acc = acc
-        checkpoint(acc, epoch)
+        best_prediction = pred_all
+        best_target = target_all
 
     #Confusion Mat
     print(confusion_matrix(pred_all, target_all))
@@ -243,13 +252,18 @@ def adjust_learning_rate(optimizer, epoch):
 #
 
 if __name__ == '__main__':
+    scalar_list = []
     for epoch in range(opt.epoch):
         adjust_learning_rate(optimizer, epoch)
-        train_loss, train_acc = train(epoch)
+        train_loss, train_acc = train(epoch, opt.train-method)
         test_loss, test_acc = test(epoch)
-        # with open(logname, 'a') as logfile:
-        #     logwriter = csv.writer(logfile, delimiter=',')
-        #     logwriter.writerow([epoch, train_loss, train_acc, test_loss, test_acc])
+        scalar_list.append([test_loss, test_acc])
+
+    scalar_list = np.array(scalar_list)
+    with open('vanilla.log', 'wb+') as logfile:
+        pickle.dump(scalar_list, logfile)
     print("best test acc:{}".format(best_acc))
+    plot_confusion_matrix(best_prediction, best_target, classes=label_dict.keys(), normalize=True,
+                          title='ResNet1D')
 
 

@@ -1,6 +1,9 @@
 import os
+import re
 
 from sklearn.decomposition import IncrementalPCA, PCA
+
+from utils import filters
 from utils.emd import emd_csi
 from reader import Parser
 import numpy as np
@@ -20,10 +23,11 @@ WINDOW_SIZE = 100
 #============read CSI data from file======================
 # subcarrier channel, samples point, antena to antena
 def get_csi(filename):
-    data0, n_subcarriers, n_transmitters, n_receivers, n_packets = Parser.getCSI(filename)
+    data0 = Parser.getCSI(filename)[0][0]
     # print("NO. Subcarriers: ", n_subcarriers, "NO. transmitters: ", n_transmitters, "NO. receivers: ", n_receivers,
     #       "NO. n_packets: ", n_packets)
     csiAmplitude_raw, rssi_raw = Parser.getMagnitude(data0)
+
     # print('csiAmplitude_raw: ', csiAmplitude_raw.shape)
     #csiAmplitude_filtered = Parser.getFiltered(csiAmplitude_raw, 'original', 8,
                                                # polyorder=3,
@@ -92,7 +96,7 @@ def get_pca_model(filepath):
 
 def process_count(filepath, ipca):
     for dir in os.listdir(filepath):
-        if not os.path.isdir(filepath + '/' + dir):
+        if not os.path.isdir(filepath + '/' + dir) :
             continue
         csiset = []
         target = []
@@ -137,7 +141,7 @@ def process_count(filepath, ipca):
         csi_shape = csiset.shape
         print('***********csi processed shape*********', csi_shape)
         print('************target shape*************', target.shape)
-        with open("data/counting/counting_{0}.pkl".format(dir), 'wb+') as f:
+        with open(filepath + "/counting_{0}.pkl".format(dir), 'wb+') as f:
             pickle.dump(data, f)
 
 def process_count_raw(filepath):
@@ -168,7 +172,7 @@ def process_count_raw(filepath):
         csi_shape = csiset.shape
         print('***********csi processed shape*********', csi_shape)
         print('************target shape*************', target.shape)
-        with open("data/counting/counting_{0}.raw".format(dir), 'wb+') as f:
+        with open(filepath + "/counting_{0}.raw".format(dir), 'wb+') as f:
             pickle.dump(data, f)
 
 
@@ -221,43 +225,55 @@ def cut_into_windows(csi,trim=100):
         i += 1
     return csi_windows
 
-#ipca = get_pca_model(filepath = 'data/counting')
+ipca = get_pca_model(filepath = 'data/counting')
 #ipca = get_pca_model(filepath = '../data/32-')
-#process_count(filepath = 'data/counting', ipca=ipca)
+process_count(filepath = 'data/Markov', ipca=ipca)
 #process_count_raw(filepath = 'data/counting')
 # save_sub_mean('../data/counting')
 
-
-filepath = 'data/falldata'
-joblib_file = filepath + '/' + 'CSI_pca_model'
+############################################################
+# filepath = 'data/counting'
+# joblib_file = filepath + '/' + 'CSI_pca_model'
 
 #ipca = IncrementalPCA(n_components=SUBCARRIER_S + 1)
-ipca = IncrementalPCA(n_components=3)
-for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
-    with open(data_file, 'rb') as f:
-        data = pickle.load(f)
-        csi = data[0]
-        csi = csi.reshape(csi.shape[0], -1)
-        ipca.partial_fit(csi)
-        #print(ipca.explained_variance_ratio_)
+# ipca = IncrementalPCA()
+# for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
+#     with open(data_file, 'rb') as f:
+#         data = pickle.load(f)
+#         for csi in data:
+#             try:
+#                 csi = csi.reshape(csi.shape[0], -1)
+#                 ipca.partial_fit(csi)
+#             except:
+#                 continue
 
-# joblib_file = "CSI_pca_model"
-# joblib.dump(ipca, filepath + '/' +joblib_file)
-
-for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
-    with open(data_file, 'rb') as f:
-        label = os.path.splitext(data_file)[0].split('_')[-1]
-        data = pickle.load(f)
-        csi_list  = []
-        for csi in data:
-            csi = csi.reshape(csi.shape[0], -1)
-            csi = ipca.transform(csi)
-            csi_list.append(csi)
-        csi_list = np.array(csi_list)
-
-        dumpname = data_file.replace('pkl', 'pkls')
-        with open(dumpname, 'wb+') as f2:
-            pickle.dump(csi_list, f2)
+# ipca = joblib.load(joblib_file)
+# print(ipca.explained_variance_ratio_)
+# acc_ratio = [sum(ipca.explained_variance_ratio_[:i]) for i in range(len(ipca.explained_variance_ratio_))]
+# plt.plot(ipca.explained_variance_ratio_, label='Component ratio', color='b')
+# plt.plot(acc_ratio, label='Accumulative ratio', color='r')
+# plt.xlabel("Component Index")
+# plt.ylabel("Variance Ratio")
+# plt.legend(loc='best')
+# plt.show()
+# for data_file in glob.glob(r'{}/*.pkl'.format(filepath)):
+#     with open(data_file, 'rb') as f:
+#         label = os.path.splitext(data_file)[0].split('_')[-1]
+#         data = pickle.load(f)
+#         csi_list  = []
+#         print('processing:{}'.format(data_file))
+#         for csi in data:
+#             csi = csi.reshape(csi.shape[0], -1)
+#             csi = ipca.transform(csi)
+#             for i in range(csi.shape[1]):
+#                 csi[:, i] = filters.hampel(csi[:, i])
+#
+#             csi_list.append(csi)
+#         csi_list = np.array(csi_list)
+#         print(csi_list.shape)
+#         dumpname = data_file.replace('pkl', 'pkls')
+#         with open(dumpname, 'wb+') as f2:
+#             pickle.dump(csi_list, f2)
 
     # for i in range(3):
     #     plt.subplot(3, 1, i+1)

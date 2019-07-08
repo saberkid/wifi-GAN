@@ -26,6 +26,7 @@ class CSISet(Dataset):
         if self.imf_selection:
             data = data[:, :, 0 : self.imf_s]
             data = data.reshape(data.shape[0], -1)
+
         data = data.swapaxes(0, 1)
         data = torch.from_numpy(data)
         # min_v = torch.min(data)
